@@ -70,6 +70,7 @@ Collate:
     'md.pattern.r'
     'mdc.r'
     'mice.df.r'
+    'mice.impute.2l.nonlinear.r'
     'mice.impute.2l.norm.r'
     'mice.impute.2l.pan.r'
     'mice.impute.2lonly.mean.r'

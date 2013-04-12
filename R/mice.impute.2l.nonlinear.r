@@ -36,8 +36,7 @@ expand <- function(contracted, expanded, f,
 }
 
 
-#-------------------MICE.IMPUTE.2L.logit----------------------------
-# use 2l not 2L because of glitch in other code for recognizing 2L calls.
+#-------------------MICE.IMPUTE.2l.logit----------------------------
 
 mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 {

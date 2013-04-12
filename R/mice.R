@@ -164,8 +164,8 @@
 #'@return Returns an S3 object of class \code{\link[=mids-class]{mids}} (multiply imputed data set)
 #'@author Stef van Buuren \email{stef.vanbuuren@@tno.nl}, Karin
 #'Groothuis-Oudshoorn \email{c.g.m.oudshoorn@@utwente.nl}, 2000-2010, with
-#'contributions of Alexander Robitzsch, Gerko Vink, Shahab Jolani, 
-#'Roel de Jong, Jason Turner, Lisa Doove, 
+#'contributions of Alexander Robitzsch, Gerko Vink, Shahab Jolani,
+#'Roel de Jong, Jason Turner, Lisa Doove,
 #'John Fox, Frank E. Harrell, and Peter Malewski.
 #'@seealso \code{\link[=mids-class]{mids}}, \code{\link{with.mids}},
 #'\code{\link{set.seed}}, \code{\link{complete}}
@@ -279,10 +279,10 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
             stop(paste("The predictorMatrix has", nrow(pred), "rows and", ncol(pred), "columns. Both should be", nvar, "."))
         dimnames(pred) <- list(varnames, varnames)
         diag(pred) <- 0
-        
+
         ## stop if there is a class variable with missing data # SvB 25apr13
         isclassvar <- apply(pred == -2, 2, any)
-        
+
         for (j in 1:nvar) {
             if (method[j] == "" & any(pred[, j] != 0) & nmis[j] > 0) {
                 out <- varnames[j]
@@ -354,17 +354,17 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
             y <- data[, j]
             vname <- dimnames(data)[[2]][j]
             mj <- method[j]
-            mlist <- list(m1 = c("logreg", "logreg.boot", "polyreg", "lda", "polr"), 
-                          m2 = c("norm", "norm.nob", "norm.predict", "norm.boot", "mean", 
-                                 "2l.norm", "2L.norm", "2l.pan", "2L.pan", "2lonly.pan", "quadratic", "ri"), 
-                          m3 = c("norm", "norm.nob", "norm.predict", "norm.boot", "mean", 
+            mlist <- list(m1 = c("logreg", "logreg.boot", "polyreg", "lda", "polr"),
+                          m2 = c("norm", "norm.nob", "norm.predict", "norm.boot", "mean",
+                                 "2l.norm", "2L.norm", "2l.pan", "2L.pan", "2lonly.pan", "quadratic"),
+                          m3 = c("norm", "norm.nob", "norm.predict", "norm.boot", "mean",
                                  "2l.norm", "2L.norm", "2l.pan", "2L.pan", "2lonly.pan", "quadratic", "logreg", "logreg.boot"))
-            
-            if (is.numeric(y) & (mj %in% mlist$m1)) 
-                warning("Type mismatch for variable ", vname, "\nImputation method ", mj, " is for categorical data.", "\nIf you want that, turn variable ", 
-                  vname, " into a factor,", "\nand store your data in a data frame.", call. = FALSE) else if (is.factor(y) & nlevels(y) == 2 & (mj %in% mlist$m2)) 
-                warning("Type mismatch for variable ", vname, "\nImputation method ", mj, " is not for factors.", call. = FALSE) else if (is.factor(y) & nlevels(y) > 2 & (mj %in% mlist$m3)) 
-                warning("Type mismatch for variable ", vname, "\nImputation method ", mj, " is not for factors with three or more levels.", 
+
+            if (is.numeric(y) & (mj %in% mlist$m1))
+                warning("Type mismatch for variable ", vname, "\nImputation method ", mj, " is for categorical data.", "\nIf you want that, turn variable ",
+                  vname, " into a factor,", "\nand store your data in a data frame.", call. = FALSE) else if (is.factor(y) & nlevels(y) == 2 & (mj %in% mlist$m2))
+                warning("Type mismatch for variable ", vname, "\nImputation method ", mj, " is not for factors.", call. = FALSE) else if (is.factor(y) & nlevels(y) > 2 & (mj %in% mlist$m3))
+                warning("Type mismatch for variable ", vname, "\nImputation method ", mj, " is not for factors with three or more levels.",
                   call. = FALSE)
         }
 
@@ -380,12 +380,12 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
         varnames <- setup$varnames
         meth <- setup$method
         vis <- setup$visitSequence
-        
+
         ## stop if the class variable is a factor 25apr2013
         isclassvar <- apply(pred == -2, 2, any)
         for (j in 1:nvar) {
-            if (isclassvar[j] & is.factor(data[,j])) 
-            stop(paste("Class variable (column ",j,") cannot be factor. Convert to numeric by as.integer()",sep=""))        
+            if (isclassvar[j] & is.factor(data[,j]))
+            stop(paste("Class variable (column ",j,") cannot be factor. Convert to numeric by as.integer()",sep=""))
         }
         ## remove constant variables but leave passive variables untouched
         for (j in 1:nvar) {

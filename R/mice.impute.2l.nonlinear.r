@@ -47,6 +47,10 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
     type <- c(2, type)
   }
 
+  if (any(type==1))
+      return (mice.impute.2lmixed.logit(y, ry, x, type))
+
+
   ## Initialize
   #n.iter <- 100
   n.iter <- 1000
@@ -98,6 +102,108 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
       # mu2 is center of prior dist of y2 given the coefficient draws
       mu2 <- X2 %*% beta
+
+      # Prior y2 ~ N(mu2, sigma2)  Note sigma2 is 2nd level, not squared
+      # We do not consider the uncertainty in mu2 and sigma2
+      # commence computation of posterior y2
+      # TODO: stop using column indices to refer to values in the argument of posterior
+      count2 <- t(simplify2array(by(y, gf.full, function(b) c(sum(b, na.rm=TRUE), sum(!is.na(b))))))
+      # draw a posterior y for each group
+      # Numerically intensive
+      posterior <- function(x) {
+          nyes <- x[1]
+          nno <- x[2]-nyes
+          mu <- x[3]
+          grid <- seq(mu-3*sigma2, mu+3*sigma2, length.out=500)
+          p <- 1/(1+exp(-grid))
+          post <- (nyes*log(p)+nno*log(1-p))+log(dnorm(grid, mean=mu, sd=sigma2))
+          post <- post-max(post)
+          sample(grid, 1, prob=exp(post))
+      }
+      # impute all the  posterior ys
+      y2 <- apply(cbind(count2, mu2), 1, posterior)
+      p2 <- 1/(1+exp(-y2))
+
+      # apply p2 to impute y for each missing value
+      # these are indices into p2 from all the missing observations in y
+      into2 <- match(gf.full[nry], id2)
+      y[nry] <- rbinom(sum(nry), 1, p2[into2])
+                                        # for each iteration record sigma2, coef, beta, mu2, y2
+      MCTRACE[iter+1,] <<- c(sigma2, coef, beta, mu2, y2)
+  }
+  return(y[!ry])
+}
+
+# mixed level 1 and 2 predictors of outcomes
+mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
+{
+    ## We make two additions to the input data.
+    ## We assume there is an unobserved variable z with
+    ## Pr(y=1) = 1/(1+exp(-z))
+    ## Second, for each group there is a continuous group effect z2
+    ## with mean 0 and variance tauz
+    ## It seems likely that tau and tauz may be correlated, slowing convergence.
+    ## z=Xb+z2
+    ## Define zres= z-Xb
+  ## Initialize
+  #n.iter <- 100
+  n.iter <- 1000
+  nry <- !ry
+  n.class <- length(unique(x[, type==(-2)]))
+  gf.full <- factor(x[,type==(-2)], labels=1:n.class)
+  ids <- contract(data.frame(gf.full), gf.full)
+  gf <- gf.full[ry]
+
+  X <- as.matrix(x[,type>0])
+
+  # level 1 latent variables
+  # establish initial guesses with Laplace's law of succession
+  p <- (y+1)/3
+  # set missing values to the sample average
+  p[is.na(p)] <- mean(y, na.rm=TRUE)
+  # invert to get the latent variable
+  z <- qlogis(p)
+  zres <- z-mean(z)  # inital guess assumes all coefficient except intercept are 0
+
+  # at this point we have imputed values for the latent z
+  # but not for the y
+
+  # compute some constants for the loop
+  xtx <- t(X) %*% X
+  ridge <- 0.00001
+  pen <- ridge * diag(xtx)
+  if (length(pen)==1) pen <- matrix(pen)
+  v <- solve(xtx + diag(pen))
+
+  # continue setting initial values
+  coef <- t(z %*% X %*% v)
+  # for each iteration record sigma2, coef, beta, mu2, y2
+  nvar <- ncol(v)
+  ntrace <- 1+nvar+nvar+n.class+n.class
+  MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
+  MCTRACE[1, seq(ntrace-n.class+1, ntrace)] <<- y2
+
+  for (iter in 1:n.iter){
+      # X already has an intercept in it
+
+      # WORK IN PROGRESS
+
+      # draw values for z2 given all other values
+      theta2 <- c(by(y, gf.full, mean))
+      theta2e <- expand(theta2, gf.full,
+
+      # the next section is modeled on .norm.draw except
+      # it estimates the model from all the data
+      # and then imputes all the data.
+      # Also, this works on the level 2 data.
+
+      coef <- t(y2 %*% X %*% v)
+      residuals <- y2 - X %*% coef
+      sigma2 <- sqrt(sum((residuals)^2)/rchisq(1, nrow(X) - ncol(X)))  # SvB 01/02/2011
+      beta <- coef + (t(chol((v + t(v))/2)) %*% rnorm(ncol(X))) * sigma2
+
+      # mu2 is center of prior dist of y2 given the coefficient draws
+      mu2 <- X %*% beta
 
       # Prior y2 ~ N(mu2, sigma2)  Note sigma2 is 2nd level, not squared
       # We do not consider the uncertainty in mu2 and sigma2

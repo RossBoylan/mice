@@ -13,7 +13,6 @@ Question or suggestions about MICE can be send to
 
 CHANGELOG MICE
 ~~~~~~~~~~~~~~
-
 V2.16    27-04-2013 SvB
 ADDED    random indicator imputation by mice.impute.ri() for nonignorable models (thanks Shahab Jolani)
 ADDED    workhorse functions .norm.draw() and .pmm.match() are exported

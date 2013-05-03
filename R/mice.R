@@ -45,6 +45,7 @@
 #'\item{polr}{Proportional odds model (ordered, >=2 levels)}
 #'\item{lda}{Linear discriminant analysis (factor, >= 2 categories)}
 #'\item{cart}{Classification and regression tress (any)}
+#'\item{ri}{Random indicator method for nonignorable data (numeric)}
 #'\item{sample}{Random sample from the observed values (any)} }
 #'
 #'These corresponding functions are coded in the \code{mice} library under
@@ -163,7 +164,8 @@
 #'@return Returns an S3 object of class \code{\link[=mids-class]{mids}} (multiply imputed data set)
 #'@author Stef van Buuren \email{stef.vanbuuren@@tno.nl}, Karin
 #'Groothuis-Oudshoorn \email{c.g.m.oudshoorn@@utwente.nl}, 2000-2010, with
-#'contributions of Alexander Robitzsch, Gerko Vink, Roel de Jong, Jason Turner,
+#'contributions of Alexander Robitzsch, Gerko Vink, Shahab Jolani,
+#'Roel de Jong, Jason Turner, Lisa Doove,
 #'John Fox, Frank E. Harrell, and Peter Malewski.
 #'@seealso \code{\link[=mids-class]{mids}}, \code{\link{with.mids}},
 #'\code{\link{set.seed}}, \code{\link{complete}}
@@ -191,6 +193,11 @@
 #'multiple imputation strategies for the statistical analysis of incomplete
 #'data sets.} Dissertation. Rotterdam: Erasmus University.
 #'@keywords iteration
+#'@import MASS nnet
+#'@importFrom stats lm glm
+#'@importFrom utils packageDescription
+#'@importFrom graphics plot
+#'@importFrom rpart rpart rpart.control
 #'@examples
 #'
 #'
@@ -272,6 +279,10 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
             stop(paste("The predictorMatrix has", nrow(pred), "rows and", ncol(pred), "columns. Both should be", nvar, "."))
         dimnames(pred) <- list(varnames, varnames)
         diag(pred) <- 0
+
+        ## stop if there is a class variable with missing data # SvB 25apr13
+        isclassvar <- apply(pred == -2, 2, any)
+
         for (j in 1:nvar) {
             if (method[j] == "" & any(pred[, j] != 0) & nmis[j] > 0) {
                 out <- varnames[j]
@@ -279,6 +290,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
                 pred[, j] <- 0
                 vis <- vis[vis != j]
                 post[j] <- ""
+                if (isclassvar[j]) stop("Removed an incomplete class variable.")  ## SvB 25apr13
             }
             if (nmis[j] == 0 & any(pred[j, ] != 0))
                 pred[j, ] <- 0
@@ -369,10 +381,16 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
         meth <- setup$method
         vis <- setup$visitSequence
 
+        ## stop if the class variable is a factor 25apr2013
+        isclassvar <- apply(pred == -2, 2, any)
+        for (j in 1:nvar) {
+            if (isclassvar[j] & is.factor(data[,j]))
+            stop(paste("Class variable (column ",j,") cannot be factor. Convert to numeric by as.integer()",sep=""))
+        }
         ## remove constant variables but leave passive variables untouched
         for (j in 1:nvar) {
             if (!is.passive(meth[j])) {
-                v <- var(data[, j], na.rm = TRUE)
+                v <- ifelse(is.character(data[,j]), NA, var(data[, j], na.rm = TRUE))
                 if (allow.na) {
                   constant <- FALSE  # SvB 10/3/2011
                   if (!is.na(v))

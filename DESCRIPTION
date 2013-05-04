@@ -23,7 +23,8 @@ Depends:
     methods,
     lattice,
     MASS,
-    nnet
+    nnet,
+    plyr
 Imports:
     rpart
 Suggests:

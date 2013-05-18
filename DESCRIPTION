@@ -1,8 +1,8 @@
 Package: mice
 Type: Package
-Version: 2.16
+Version: 2.17
 Title: Multivariate Imputation by Chained Equations
-Date: 2013-04-27
+Date: 2013-05-11
 Authors@R: c(person("Stef", "van Buuren", role = c("aut","cre"),
     email = "stef.vanbuuren@tno.nl"),
     person("Karin", "Groothuis-Oudshoorn", role = "aut",
@@ -55,7 +55,7 @@ Collate:
     'boys.r'
     'bwplot.r'
     'cbind.r'
-    'cc.R'
+    'cc.r'
     'cci.r'
     'ccn.r'
     'complete.r'
@@ -76,7 +76,7 @@ Collate:
     'md.pairs.r'
     'md.pattern.r'
     'mdc.r'
-    'mice.R'
+    'mice.r'
     'mice.df.r'
     'mice.impute.2l.nonlinear.r'
     'mice.impute.2l.norm.r'
@@ -96,13 +96,11 @@ Collate:
     'mice.impute.pmm.r'
     'mice.impute.polr.r'
     'mice.impute.polyreg.r'
-    'mice.impute.quadratic.R'
+    'mice.impute.quadratic.r'
     'mice.impute.ri.r'
-    'mice.impute.sample.r'
-    'mice.mids.r'
     'mice.theme.r'
     'mids.r'
-    'mids2mplus.R'
+    'mids2mplus.r'
     'mids2spss.r'
     'mipo.r'
     'mira.r'
@@ -121,7 +119,7 @@ Collate:
     'print.r'
     'quickpred.r'
     'rbind.r'
-    'rm.whitespace.R'
+    'rm.whitespace.r'
     'selfreport.r'
     'squeeze.r'
     'stripplot.r'
@@ -132,4 +130,4 @@ Collate:
     'windspeed.r'
     'with.r'
     'xyplot.r'
-    'zzz.R'
+    'zzz.r'

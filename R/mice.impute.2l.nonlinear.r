@@ -158,7 +158,9 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   n.class <- length(unique(x[, type==(-2)]))
   gf.full <- factor(x[,type==(-2)], labels=1:n.class)
   ids <- contract(data.frame(gf.full), gf.full)
-  nids <- daply(data.frame(id=gf.full), .(id), count)
+  # count does not work if each id group does not apppear on
+  # successive rows
+  nids <- ddply(data.frame(id=gf.full), .(id), summarize, n=length(id))
   gf <- gf.full[ry]
 
   X <- as.matrix(x[,type>0])

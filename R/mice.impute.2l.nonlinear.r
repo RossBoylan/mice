@@ -158,9 +158,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   n.class <- length(unique(x[, type==(-2)]))
   gf.full <- factor(x[,type==(-2)], labels=1:n.class)
   ids <- contract(data.frame(gf.full), gf.full)
-  # count does not work if each id group does not apppear on
-  # successive rows
-  nids <- ddply(data.frame(id=gf.full), .(id), summarize, n=length(id))
   gf <- gf.full[ry]
 
   X <- as.matrix(x[,type>0])
@@ -176,7 +173,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   # establish initial guesses with Laplace's law of succession
   p <- (y+1)/3
   # set missing values to the sample average
-  # I think they y have already been imputed before entering this function
+  # I think that y have already been imputed before entering this function
   p[is.na(p)] <- mean(y, na.rm=TRUE)
   # invert to get the latent variable
   z <- qlogis(p)
@@ -191,13 +188,13 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   beta <- beta.post.mean
   resid <- z-X%*%beta
   # level 2 latent variables initial values
-  theta2 <- aaply(resid, gf.full, mean)
-  theta <- unlist(mapply(rep, theta2, nids))
+  theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
+  theta <- theta2[match(gf.full, theta2$id), "mean"]
 
   # No initial values needed
-  tau <- NA_real
-  sigma <- NA_real
-  z.prior.mean = rep(NA_real, nrow(X))
+  tau <- NA_real_
+  sigma <- NA_real_
+  z.prior.mean = rep(NA_real_, nrow(X))
 
 
 # for each iteration record sigma2, beta.post.mean, beta, mu2, y2
@@ -205,7 +202,9 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   ntrace <- 2+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
   MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
   # order is all the posterior values and then some related stats
-  MCTRACE[1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+  ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@2@"]]))##:ess-bp-end:##
+  MCTRACE[1,] <<- c(tau, sigma, beta, theta2$mean, z, y[nry], beta.post.mean, z.prior.mean)
 
   for (iter in 1:n.iter){
       # X already has an intercept in it
@@ -221,7 +220,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       # reflecting different prior distns needed for proper posterior
 
       # draw posterior theta
-      thetapost <- adply(z - X %*%beta.post.mean, gf.full, function(x) {
+      thetapost <- ddply(data.frame(id=gf.full, r= z - X %*%beta.post.mean), .(id), function(df) {
+          x <- df$r
           n <- length(x)
           varpost <- 1/(1/tau^2 + n/sigma^2)
           mupost <- sum(x)/sigma^2/varpost
@@ -229,7 +229,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       })
       theta2 <- rnorm(n.class, mean=thetapost$mu,
                       sd=sqrt(thetapost$var))
-      theta <- unlist(mapply(rep, theta2, nids))
+      # replicate theta2 onto level 1
+      theta <- theta2[match(gf.full, thetapost$id)]
 
       ## draw posterior beta and redraw sigma
       w <- z-theta

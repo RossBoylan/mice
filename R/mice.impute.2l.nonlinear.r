@@ -131,6 +131,8 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       into2 <- match(gf.full[nry], id2)
       y[nry] <- rbinom(sum(nry), 1, p2[into2])
                                         # for each iteration record sigma2, coef, beta, mu2, y2
+      ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@2@"]]))##:ess-bp-end:##
       MCTRACE[iter+1,] <<- c(sigma2, coef, beta, mu2, y2)
   }
   return(y[!ry])
@@ -189,12 +191,16 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   resid <- z-X%*%beta
   # level 2 latent variables initial values
   theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
-  theta <- theta2[match(gf.full, theta2$id), "mean"]
+  iExpand <- match(gf.full, theta2$id)
+  theta2 <- theta2[,"mean"]
+  theta <- theta2[iExpand]
 
   # No initial values needed
   tau <- NA_real_
   sigma <- NA_real_
   z.prior.mean = rep(NA_real_, nrow(X))
+##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
 
 
 # for each iteration record sigma2, beta.post.mean, beta, mu2, y2
@@ -202,9 +208,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   ntrace <- 2+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
   MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
   # order is all the posterior values and then some related stats
-  ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@2@"]]))##:ess-bp-end:##
-  MCTRACE[1,] <<- c(tau, sigma, beta, theta2$mean, z, y[nry], beta.post.mean, z.prior.mean)
+  MCTRACE[1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
 
   for (iter in 1:n.iter){
       # X already has an intercept in it
@@ -258,6 +262,8 @@ browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@2@"]]))##:ess-bp-end:##
           post <- post-max(post)
           sample(grid, 1, prob=exp(post))
       }
+      ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@3@"]]))##:ess-bp-end:##
       z <- apply(cbind(z.prior.mean, sigma, y), 1, posterior)
       # and impute the missing observed values
       y[nry] <- rbinom(nmiss, 1, 1/(1+exp(-z[nry])))

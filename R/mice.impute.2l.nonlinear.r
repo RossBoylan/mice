@@ -131,8 +131,6 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       into2 <- match(gf.full[nry], id2)
       y[nry] <- rbinom(sum(nry), 1, p2[into2])
                                         # for each iteration record sigma2, coef, beta, mu2, y2
-      ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@2@"]]))##:ess-bp-end:##
       MCTRACE[iter+1,] <<- c(sigma2, coef, beta, mu2, y2)
   }
   return(y[!ry])
@@ -199,8 +197,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   tau <- NA_real_
   sigma <- NA_real_
   z.prior.mean = rep(NA_real_, nrow(X))
-##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
 
 
 # for each iteration record sigma2, beta.post.mean, beta, mu2, y2
@@ -213,6 +209,7 @@ browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
   for (iter in 1:n.iter){
       # X already has an intercept in it
 
+      # Gelman et al 2004 pp. 299-301 for hierarchical normal model
       # draw posterior values for tau given all other values
       # theta2 ~ Norm(0, tau)
       tau <- sqrt(sum(theta2^2)/rchisq(1, n.class-1))
@@ -228,13 +225,13 @@ browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
           x <- df$r
           n <- length(x)
           varpost <- 1/(1/tau^2 + n/sigma^2)
-          mupost <- sum(x)/sigma^2/varpost
+          mupost <- sum(x)/sigma^2*varpost
           data.frame(mu=mupost, var=varpost)
       })
       theta2 <- rnorm(n.class, mean=thetapost$mu,
                       sd=sqrt(thetapost$var))
       # replicate theta2 onto level 1
-      theta <- theta2[match(gf.full, thetapost$id)]
+      theta <- theta2[iExpand]
 
       ## draw posterior beta and redraw sigma
       w <- z-theta
@@ -251,7 +248,7 @@ browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
       # done numerically
 
       posterior <- function(x){
-          mu <- x["z.prior.mean"]
+          mu <- x[1]  #["z.prior.mean"] except cbind does not label column
           sigma <- x["sigma"]
           y <- x["y"]
           grid <- seq(mu-3*sigma, mu+3*sigma, length=500)
@@ -262,8 +259,6 @@ browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
           post <- post-max(post)
           sample(grid, 1, prob=exp(post))
       }
-      ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.BaseNamespaceEnv[['.ESSBP.']][["@3@"]]))##:ess-bp-end:##
       z <- apply(cbind(z.prior.mean, sigma, y), 1, posterior)
       # and impute the missing observed values
       y[nry] <- rbinom(nmiss, 1, 1/(1+exp(-z[nry])))

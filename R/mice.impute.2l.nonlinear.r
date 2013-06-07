@@ -261,7 +261,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
       posterior <- function(x){
           mu <- x[1]  #["z.prior.mean"] except cbind does not label column
-          sigma <- x["sigma"]
+          # try to avoid sigma collapsing to zero
+          sigma <- max(x["sigma"], 1)
           y <- x["y"]
           grid <- mu + sigma*grid.raw
           p = 1/(1+exp(-grid))

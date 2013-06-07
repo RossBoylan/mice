@@ -54,7 +54,7 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
 
   ## Initialize
-  #n.iter <- 100
+  #n.iter <- 5
   n.iter <- 1000
   nry <- !ry
   n.class <- length(unique(x[, type==(-2)]))
@@ -151,8 +151,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
     ## e is normal error with sd sigma
     ## It seems likely that sigma and tau may be correlated, slowing convergence.
   ## Initialize
-  #n.iter <- 100
-  n.iter <- 1000
+  n.iter <- 5
+  #n.iter <- 1000
   nry <- !ry
   nmiss <- sum(nry)
   n.class <- length(unique(x[, type==(-2)]))
@@ -206,6 +206,18 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   # order is all the posterior values and then some related stats
   MCTRACE[1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
 
+  #optimization: precompute constant for inner loop posterior()
+  grid.lo <- -3
+  grid.hi <- 3
+  grid.size <- 250
+  grid.raw <- seq(grid.lo, grid.hi, length=grid.size)
+  # The true grid is mu+sigma*grid.raw and we need the probabilities
+  # at those points.  But the probability for N(mu, sd) at mu+sd*x
+  # is [probability for N(0, 1) at x]/sd.  The division
+  # is just an additive constant for log(prob) and can be ignored.
+  # So we only need to compute the probabilities once. dnorm is relatively expensive.
+  grid.lnprob <- log(dnorm(grid.raw))
+
   for (iter in 1:n.iter){
       # X already has an intercept in it
 
@@ -251,11 +263,11 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
           mu <- x[1]  #["z.prior.mean"] except cbind does not label column
           sigma <- x["sigma"]
           y <- x["y"]
-          grid <- seq(mu-3*sigma, mu+3*sigma, length=500)
+          grid <- mu + sigma*grid.raw
           p = 1/(1+exp(-grid))
           if ( y == 0)
               p = 1- p
-          post <- log(p) + log(dnorm(grid, mean=mu, sd=sigma))
+          post <- log(p) + grid.lnprob
           post <- post-max(post)
           sample(grid, 1, prob=exp(post))
       }

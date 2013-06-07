@@ -216,7 +216,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   # is [probability for N(0, 1) at x]/sd.  The division
   # is just an additive constant for log(prob) and can be ignored.
   # So we only need to compute the probabilities once. dnorm is relatively expensive.
-  grid.lnprob <- log(dnorm(grid.raw))
+  #grid.lnprob <- log(dnorm(grid.raw))
+  # Because of possible rescaling of the interval if sigma is small precomputation won't work.
 
   for (iter in 1:n.iter){
       # X already has an intercept in it
@@ -261,14 +262,14 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
       posterior <- function(x){
           mu <- x[1]  #["z.prior.mean"] except cbind does not label column
-          # try to avoid sigma collapsing to zero
-          sigma <- max(x["sigma"], 1)
+          sigma <- x["sigma"]
           y <- x["y"]
-          grid <- mu + sigma*grid.raw
+          # fight possible collapse of sigma to 0
+          grid <- mu + max(sigma, 1)*grid.raw
           p = 1/(1+exp(-grid))
           if ( y == 0)
               p = 1- p
-          post <- log(p) + grid.lnprob
+          post <- log(p) + dnorm(grid, mean=mu, sd=sigma, log=TRUE)
           post <- post-max(post)
           sample(grid, 1, prob=exp(post))
       }

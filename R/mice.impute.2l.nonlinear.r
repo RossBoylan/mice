@@ -201,23 +201,12 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
 # for each iteration record sigma2, beta.post.mean, beta, mu2, y2
   nvar <- ncol(v)
-  ntrace <- 2+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
+  ntrace <- 2+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)+1
   MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
   # order is all the posterior values and then some related stats
-  MCTRACE[1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+  # final value is acceptance rate for candidate z
+  MCTRACE[1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean, NA)
 
-  #optimization: precompute constant for inner loop posterior()
-  grid.lo <- -3
-  grid.hi <- 3
-  grid.size <- 500
-  grid.raw <- seq(grid.lo, grid.hi, length=grid.size)
-  # The true grid is mu+sigma*grid.raw and we need the probabilities
-  # at those points.  But the probability for N(mu, sd) at mu+sd*x
-  # is [probability for N(0, 1) at x]/sd.  The division
-  # is just an additive constant for log(prob) and can be ignored.
-  # So we only need to compute the probabilities once. dnorm is relatively expensive.
-  #grid.lnprob <- log(dnorm(grid.raw))
-  # Because of possible rescaling of the interval if sigma is small precomputation won't work.
 
   for (iter in 1:n.iter){
       # X already has an intercept in it
@@ -258,25 +247,23 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
       # Prior z ~ N(z.prior.mean, sigma)
       # commence computation of posterior (z|y and all other values)
-      # done numerically
+      # done with Metropolis algorithm
+      # a are the candidate points
+      alen <- length(z)  # aka nrow(X)
+      a <- rnorm(alen, mean=z, sd = max(1.0, sqrt(sigma^2+tau^2)))
+      # compute posterior prob for both new and old values
+      zboth <- c(a, z)
+      logitprob <- 1/(1+exp(-zboth))
+      logitprob <- ifelse(rep(y==1, 2), logitprob, 1-logitprob)
+      priorprob <- dnorm(zboth, mean=z.prior.mean, sd=sigma)
+      prob <- logitprob*priorprob
+      probr <- prob[seq(alen)]/prob[(alen+1) : (2*alen)]
+      accept <- runif(alen) <= probr
+      z[accept] <- a[accept]
 
-      posterior <- function(x){
-          mu <- x[1]  #["z.prior.mean"] except cbind does not label column
-          sigma <- x["sigma"]
-          y <- x["y"]
-          # fight possible collapse of sigma to 0
-          grid <- mu + max(sigma, 1)*grid.raw
-          p = 1/(1+exp(-grid))
-          if ( y == 0)
-              p = 1- p
-          post <- log(p) + dnorm(grid, mean=mu, sd=sigma, log=TRUE)
-          post <- post-max(post)
-          sample(grid, 1, prob=exp(post))
-      }
-      z <- apply(cbind(z.prior.mean, sigma, y), 1, posterior)
       # and impute the missing observed values
       y[nry] <- rbinom(nmiss, 1, 1/(1+exp(-z[nry])))
-      MCTRACE[iter+1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+      MCTRACE[iter+1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean, sum(accept)/alen)
   }
   return(y[!ry])
 }

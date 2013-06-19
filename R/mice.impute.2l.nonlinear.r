@@ -218,7 +218,9 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
       # and for sigma, also known mean 0
       resid <- z- X %*% beta - theta
-      sigma <- sqrt(sum(resid^2)/rchisq(1, nrow(X)))
+      #sigma <- sqrt(sum(resid^2)/rchisq(1, nrow(X)))
+      # try to speed convergence by avoid sigma/tau confusion
+      sigma <- 0.2
       # the use of df here and df-1 above is deliberate
       # reflecting different prior distns needed for proper posterior
 
@@ -239,7 +241,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       w <- z-theta
       beta.post.mean <- t(w %*% X %*% v)
       residuals <- z - X %*% beta.post.mean - theta
-      sigma <- sqrt(sum((residuals)^2)/rchisq(1, nrow(X) - ncol(X)))  # SvB 01/02/2011
+      #sigma <- sqrt(sum((residuals)^2)/rchisq(1, nrow(X) - ncol(X)))  # SvB 01/02/2011
       beta <- beta.post.mean + (t(chol((v + t(v))/2)) %*% rnorm(ncol(X))) * sigma
 
       # z.prior.mean is center of prior dist of z given the coefficient draws

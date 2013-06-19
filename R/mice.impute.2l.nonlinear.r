@@ -252,7 +252,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       # done with Metropolis algorithm
       # a are the candidate points
       alen <- length(z)  # aka nrow(X)
-      a <- rnorm(alen, mean=z, sd = 1.4*max(1.0, sqrt(sigma^2+tau^2)))
+      a <- rnorm(alen, mean=z, sd = 0.8*max(1.0, sqrt(sigma^2+tau^2)))
       # compute posterior prob for both new and old values
       zboth <- c(a, z)
       # change sign of zboth if y==0 to compute correct prob of outcome

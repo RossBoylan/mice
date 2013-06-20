@@ -1,4 +1,5 @@
 require("plyr")
+require("truncnorm")
 
 ## exploratory functions to get posterior likelihoods given a linear predictor
 ## that is normal
@@ -220,7 +221,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       resid <- z- X %*% beta - theta
       #sigma <- sqrt(sum(resid^2)/rchisq(1, nrow(X)))
       # try to speed convergence by avoid sigma/tau confusion
-      sigma <- 0.2
+      sigma <- 1
       # the use of df here and df-1 above is deliberate
       # reflecting different prior distns needed for proper posterior
 

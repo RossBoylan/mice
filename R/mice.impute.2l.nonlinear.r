@@ -144,13 +144,14 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
     ## We make two additions to the input data.
     ## We assume there is an unobserved variable z with
-    ## Pr(y=1) = 1/(1+exp(-z))
+    ## y=1 iff z>0.
+    ## This specification is from Albert and Chib 1993, though
+    ## that model was single level only.  We extend it ...
     ## Second, for each group there is a continuous group effect theta2
     ## with mean 0 and sd tau
-    ## z=Xb+theta+e
+    ## z=Xb+theta
     ## (theta is theta2 duplicated for each observation at level 1)
-    ## e is normal error with sd sigma
-    ## It seems likely that sigma and tau may be correlated, slowing convergence.
+
   ## Initialize
   #n.iter <- 5
   n.iter <- 1000
@@ -196,18 +197,20 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
   # No initial values needed
   tau <- NA_real_
-  sigma <- NA_real_
   z.prior.mean = rep(NA_real_, nrow(X))
 
+  # level 1 variance is a constant in this model
+  sigma <- 1.0
 
-# for each iteration record sigma2, beta.post.mean, beta, mu2, y2
   nvar <- ncol(v)
-  ntrace <- 2+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)+1
+  ntrace <- 1+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
   MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
   # order is all the posterior values and then some related stats
   # final value is acceptance rate for candidate z
-  MCTRACE[1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean, NA)
+  MCTRACE[1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
 
+  # pull calculations out of loop
+  myinf <- rep(Inf, nrow(X))
 
   for (iter in 1:n.iter){
       # X already has an intercept in it
@@ -216,14 +219,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       # draw posterior values for tau given all other values
       # theta2 ~ Norm(0, tau)
       tau <- sqrt(sum(theta2^2)/rchisq(1, n.class-1))
-
-      # and for sigma, also known mean 0
-      resid <- z- X %*% beta - theta
-      #sigma <- sqrt(sum(resid^2)/rchisq(1, nrow(X)))
-      # try to speed convergence by avoid sigma/tau confusion
-      sigma <- 1
-      # the use of df here and df-1 above is deliberate
-      # reflecting different prior distns needed for proper posterior
 
       # draw posterior theta
       thetapost <- ddply(data.frame(id=gf.full, r= z - X %*%beta.post.mean), .(id), function(df) {
@@ -238,38 +233,23 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
       # replicate theta2 onto level 1
       theta <- theta2[iExpand]
 
-      ## draw posterior beta and redraw sigma
+      ## draw posterior beta
       w <- z-theta
       beta.post.mean <- t(w %*% X %*% v)
       residuals <- z - X %*% beta.post.mean - theta
-      #sigma <- sqrt(sum((residuals)^2)/rchisq(1, nrow(X) - ncol(X)))  # SvB 01/02/2011
       beta <- beta.post.mean + (t(chol((v + t(v))/2)) %*% rnorm(ncol(X))) * sigma
 
-      # z.prior.mean is center of prior dist of z given the coefficient draws
+      # z.prior.mean is mean parameter for center of prior dist of z given the coefficient draws
       z.prior.mean <- X %*% beta + theta
-
-      # Prior z ~ N(z.prior.mean, sigma)
-      # commence computation of posterior (z|y and all other values)
-      # done with Metropolis algorithm
-      # a are the candidate points
-      alen <- length(z)  # aka nrow(X)
-      a <- rnorm(alen, mean=z, sd = 0.6*max(1.0, sqrt(sigma^2+tau^2)))
-      # compute posterior prob for both new and old values
-      zboth <- c(a, z)
-      # change sign of zboth if y==0 to compute correct prob of outcome
-      yz <- (-1 + 2*y)*zboth
-      # now 1/(1+exp(-yz)) is prob observed outcome for y=0 or 1
-      logitLL <- -log(1+exp(-yz))
-      # Note: zboth, not yz, in next term.
-      priorLL <- dnorm(zboth, mean=z.prior.mean, sd=sigma, log=TRUE)
-      LL <- logitLL+priorLL
-      LLR <- LL[seq(alen)]-LL[(alen+1) : (2*alen)]
-      accept <- runif(alen) <= exp(LLR)
-      z[accept] <- a[accept]
+      trunclo <- -myinf
+      trunchi <- myinf
+      trunclo[y==1] <- 0
+      trunchi[y==0] <- 0
+      z <- rtruncnorm(nrow(X), a=trunclo, b=trunchi, mean=z.prior.mean)
 
       # and impute the missing observed values
       y[nry] <- rbinom(nmiss, 1, 1/(1+exp(-z[nry])))
-      MCTRACE[iter+1,] <<- c(tau, sigma, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean, sum(accept)/alen)
+      MCTRACE[iter+1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
   }
   return(y[!ry])
 }

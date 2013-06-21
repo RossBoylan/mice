@@ -210,7 +210,10 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   MCTRACE[1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
 
   # pull calculations out of loop
-  myinf <- rep(Inf, nrow(X))
+  # if y is missing we draw a normal, otherwise a truncated normal
+  # consistent with the observed y
+  trunclo <- ifelse(ry & (y==1), 0, -Inf)
+  trunchi <- ifelse(ry & (y==0), 0, Inf)
 
   for (iter in 1:n.iter){
       # X already has an intercept in it
@@ -241,14 +244,10 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
       # z.prior.mean is mean parameter for center of prior dist of z given the coefficient draws
       z.prior.mean <- X %*% beta + theta
-      trunclo <- -myinf
-      trunchi <- myinf
-      trunclo[y==1] <- 0
-      trunchi[y==0] <- 0
       z <- rtruncnorm(nrow(X), a=trunclo, b=trunchi, mean=z.prior.mean)
 
       # and impute the missing observed values
-      y[nry] <- rbinom(nmiss, 1, 1/(1+exp(-z[nry])))
+      y[nry] <- z[nry]>0
       MCTRACE[iter+1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
   }
   return(y[!ry])

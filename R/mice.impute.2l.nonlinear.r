@@ -260,15 +260,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster
 
-    ## We make two additions to the input data.
-    ## We assume there is an unobserved variable z with
-    ## y=1 iff z>0.
-    ## This specification is from Albert and Chib 1993, though
-    ## that model was single level only.  We extend it ...
-    ## Second, for each group there is a continuous group effect theta2
-    ## with mean 0 and sd tau
-    ## z=Xb+theta
-    ## (theta is theta2 duplicated for each observation at level 1)
 
   ## Initialize
   #n.iter <- 5
@@ -281,8 +272,44 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   gf <- gf.full[ry]
 
   X <- as.matrix(x[,type>0])
+  nvar <- ncol(X)
+  beta <- rep(0, nvar)
+  tau <- 1.0
+  # level 2 latent variables initial values
+  theta2 <- rep(0, n.class)
+  iExpand <- match(gf.full, ids)
+  theta <- theta2[iExpand]
 
-  # compute some constants for the loop
+  # compute derivatives using formula
+  eta <- X %*% beta + theta
+  term1 <- (2*y - 1)*dnorm(-eta^2/2)
+  term1mat <- matrix(term1, nrow=nrow(X), ncol=nvar)
+  dldbeta <- apply(term1mat*X, 2, sum)
+  # tapply and contract, which orders theta2, both
+  # use the same order, and so the addition below should work.
+  dldtheta <- tapply(term1, gf.full, sum)-theta2/tau^2
+  dldtau <- (-2-n.class+sum(theta2^2)/tau^2)/tau
+
+
+  # compute numerical derivatives using the likelihood
+  # parameters p are beta, theta2, tau in that order
+  f <- function(p){
+      # override beta, theta2, tau and eta from outer scope
+      beta <- p[1:nvar]
+      theta2 <- p[(nvar+1):(nvar+n.class)]
+      tau <- p[nvar+n.class+1]
+      eta <- X %*% beta + theta2[iExpand]
+      -(2+n.class)*log(tau)+sum((2*y-1)*pnorm(eta))-sum(theta2^2)/(2*tau^2)
+  }
+
+  myenv <- new.env()
+  assign("p", c(beta, theta2, tau), envir=myenv)
+  dl <- numericDeriv(quote(f(p)), "p", myenv)
+  dld <- c(attr(dl, "gradient"))
+  delta <- dld-c(dldbeta, dldtheta, dldtau)
+                                        # compute some constants for the loop
+  ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSR_Env[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
   xtx <- t(X) %*% X
   ridge <- 0.00001
   pen <- ridge * diag(xtx)

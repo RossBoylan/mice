@@ -24,7 +24,8 @@ Depends:
     lattice,
     MASS,
     nnet,
-    plyr
+    plyr,
+    truncnorm
 Imports:
     rpart
 Suggests:

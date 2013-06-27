@@ -137,6 +137,124 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   return(y[!ry])
 }
 
+mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE, ...)
+{
+    ## mixed level 1 and 2 predictors of outcomes
+    ## variables with 2 at end of name are level 2, one obs /cluster
+
+    ## We make two additions to the input data.
+    ## We assume there is an unobserved variable z with
+    ## y=1 iff z>0.
+    ## This specification is from Albert and Chib 1993, though
+    ## that model was single level only.  We extend it ...
+    ## Second, for each group there is a continuous group effect theta2
+    ## with mean 0 and sd tau
+    ## z=Xb+theta
+    ## (theta is theta2 duplicated for each observation at level 1)
+
+  ## Initialize
+  #n.iter <- 5
+  n.iter <- 1000
+  nry <- !ry
+  nmiss <- sum(nry)
+  n.class <- length(unique(x[, type==(-2)]))
+  gf.full <- factor(x[,type==(-2)], labels=1:n.class)
+  ids <- contract(data.frame(gf.full), gf.full)
+  gf <- gf.full[ry]
+
+  X <- as.matrix(x[,type>0])
+
+  # compute some constants for the loop
+  xtx <- t(X) %*% X
+  ridge <- 0.00001
+  pen <- ridge * diag(xtx)
+  if (length(pen)==1) pen <- matrix(pen)
+  v <- solve(xtx + diag(pen))
+
+  # level 1 latent variables
+  # establish initial guesses with Laplace's law of succession
+  p <- (y+1)/3
+  # set missing values to the sample average
+  # I think that y have already been imputed before entering this function
+  p[is.na(p)] <- mean(y, na.rm=TRUE)
+  # invert to get the latent variable
+  z <- qlogis(p)
+
+  # at this point we have imputed values for the latent z
+  # but not for the y.  I think it's unnecessary, but just in case...
+  y[nry] <- sample(y[ry], nmiss, replace=TRUE)
+
+  # continue setting initial values
+
+  beta.post.mean <- t(z %*% X %*% v)
+  beta <- beta.post.mean
+  resid <- z-X%*%beta
+  # level 2 latent variables initial values
+  theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
+  iExpand <- match(gf.full, theta2$id)
+  theta2 <- theta2[,"mean"]
+  theta <- theta2[iExpand]
+
+  # No initial values needed
+  tau <- NA_real_
+  z.prior.mean = rep(NA_real_, nrow(X))
+
+  # level 1 variance is a constant in this model
+  sigma <- 1.0
+
+  nvar <- ncol(v)
+  ntrace <- 1+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
+  MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
+  # order is all the posterior values and then some related stats
+  # final value is acceptance rate for candidate z
+  MCTRACE[1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+
+  # pull calculations out of loop
+  # if y is missing we draw a normal, otherwise a truncated normal
+  # consistent with the observed y
+  trunclo <- ifelse(ry & (y==1), 0, -Inf)
+  trunchi <- ifelse(ry & (y==0), 0, Inf)
+
+  for (iter in 1:n.iter){
+      # X already has an intercept in it
+
+      # Gelman et al 2004 pp. 299-301 for hierarchical normal model
+      # draw posterior values for tau given all other values
+      # theta2 ~ Norm(0, tau)
+      tau <- sqrt(sum(theta2^2)/rchisq(1, n.class-1))
+
+      # draw posterior theta
+      thetapost <- ddply(data.frame(id=gf.full, r= z - X %*%beta.post.mean), .(id), function(df) {
+          x <- df$r
+          n <- length(x)
+          varpost <- 1/(1/tau^2 + n/sigma^2)
+          mupost <- sum(x)/sigma^2*varpost
+          data.frame(mu=mupost, var=varpost)
+      })
+      theta2 <- rnorm(n.class, mean=thetapost$mu,
+                      sd=sqrt(thetapost$var))
+      # replicate theta2 onto level 1
+      theta <- theta2[iExpand]
+
+      ## draw posterior beta
+      w <- z-theta
+      beta.post.mean <- t(w %*% X %*% v)
+      residuals <- z - X %*% beta.post.mean - theta
+      beta <- beta.post.mean + (t(chol((v + t(v))/2)) %*% rnorm(ncol(X))) * sigma
+
+      # z.prior.mean is mean parameter for center of prior dist of z given the coefficient draws
+      z.prior.mean <- X %*% beta + theta
+      z <- rtruncnorm(nrow(X), a=trunclo, b=trunchi, mean=z.prior.mean)
+
+      # and impute the missing observed values
+      y[nry] <- z[nry]>0
+      MCTRACE[iter+1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+  }
+  return(y[!ry])
+}
+
+# Use hybrid monte carlo
+# Initially I'll just see if I can compute the derivatives correctly
 mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 {
     ## mixed level 1 and 2 predictors of outcomes

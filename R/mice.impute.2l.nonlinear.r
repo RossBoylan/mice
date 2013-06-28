@@ -300,6 +300,15 @@ dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
       c(dldbeta, dldtau, dldtheta)
   }
 
+# calculate numeric derivative of scalar value f at x
+# by varying the i'th component of x by steps
+slope <- function(f, x, i, steps) {
+    delta <- rep(0, length(x))
+    r0 <- f(x)
+    r1 <- sapply(steps, function(s) {delta[i] <- delta[i]+s; f(x+delta)})
+    bump <- r1-r0
+    data.frame(step=c(0, steps), f=c(r0, r1), deriv=c(NA, bump/steps))
+}
 
 # Use hybrid monte carlo
 # Initially I'll just see if I can compute the derivatives correctly
@@ -351,7 +360,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   # level 2 latent variables initial values
   theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
   theta2 <- theta2[,"mean"]
-  tau <- sqrt(sum((theta2-mean(theta2))^2))/(n.class-nvar)
+  tau <- sqrt(sum((theta2-mean(theta2))^2)/(n.class-nvar))
 
   # check analytic derivatives
   danalytic <- dLogDens(c(beta, tau, theta2), nvar, n.class, gf.full, X, y, iExpand)
@@ -367,6 +376,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   r <- numericDeriv(quote(logDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
   dnumeric <- c(attr(r, "gradient"))
   delta <- danalytic-dnumeric
+  tempfun <- function(x) logDens(x, nvar, n.class, gf.full, X, y, iExpand)
+  myderiv <- slope(tempfun, c(beta, tau, theta2), 1, 10^seq(-5, 2))
   browser()
 
 

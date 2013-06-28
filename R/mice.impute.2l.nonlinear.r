@@ -275,7 +275,7 @@ logDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
     eta <- X %*% beta + theta2[iExpand]
     norm <- pnorm(eta)
     prob <- ifelse(y, norm, 1-norm)
-    (sum(log(prob))+sum(dnorm(theta2, sd=tau, log=TRUE)))/(tau^2)
+    (sum(log(prob))+sum(dnorm(theta2, sd=tau, log=TRUE)))-2*log(tau)
     #log(prod(prob)*prod(dnorm(theta2, sd=tau))/(tau^2))
 }
 

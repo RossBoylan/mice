@@ -362,23 +362,23 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   theta2 <- theta2[,"mean"]
   tau <- sqrt(sum((theta2-mean(theta2))^2)/(n.class-nvar))
 
-  # check analytic derivatives
-  danalytic <- dLogDens(c(beta, tau, theta2), nvar, n.class, gf.full, X, y, iExpand)
-  myenv <- new.env()
-  assign("x", c(beta, tau, theta2), envir=myenv)
-  assign("nvar", nvar, envir=myenv)
-  assign("n.class", n.class, envir=myenv)
-  assign("gf.full", gf.full, envir=myenv)
-  assign("X", X, envir=myenv)
-  assign("y", y, envir=myenv)
-  assign("iExpand", iExpand, envir=myenv)
-  assign("logDens", logDens, envir=myenv)
-  r <- numericDeriv(quote(logDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
-  dnumeric <- c(attr(r, "gradient"))
-  delta <- danalytic-dnumeric
-  tempfun <- function(x) logDens(x, nvar, n.class, gf.full, X, y, iExpand)
-  myderiv <- slope(tempfun, c(beta, tau, theta2), 1, 10^seq(-5, 2))
-  browser()
+  ## # check analytic derivatives
+  ## danalytic <- dLogDens(c(beta, tau, theta2), nvar, n.class, gf.full, X, y, iExpand)
+  ## myenv <- new.env()
+  ## assign("x", c(beta, tau, theta2), envir=myenv)
+  ## assign("nvar", nvar, envir=myenv)
+  ## assign("n.class", n.class, envir=myenv)
+  ## assign("gf.full", gf.full, envir=myenv)
+  ## assign("X", X, envir=myenv)
+  ## assign("y", y, envir=myenv)
+  ## assign("iExpand", iExpand, envir=myenv)
+  ## assign("logDens", logDens, envir=myenv)
+  ## r <- numericDeriv(quote(logDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
+  ## dnumeric <- c(attr(r, "gradient"))
+  ## delta <- danalytic-dnumeric
+  ## tempfun <- function(x) logDens(x, nvar, n.class, gf.full, X, y, iExpand)
+  ## myderiv <- slope(tempfun, c(beta, tau, theta2), 1, 10^seq(-5, 2))
+  ## browser()
 
 
   epsilon <- 0.02

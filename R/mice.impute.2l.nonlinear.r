@@ -258,12 +258,25 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 # These are the log density of a probit model (without any Z terms)
 # and its derivatives
 # parameter ordering for q is beta, tau, theta2
-logDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
+# logDensold is wrong
+logDensold <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
     beta <- q[1:nvar]
     theta2 <- q[(nvar+2):length(q)]
     tau <- q[nvar+1]
     eta <- X %*% beta + theta2[iExpand]
     -(2+n.class)*log(tau)+sum((2*y-1)*pnorm(eta))-sum(theta2^2)/(2*tau^2)
+}
+
+# since I keep geting it wrong, take log numerically
+logDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
+    beta <- q[1:nvar]
+    theta2 <- q[(nvar+2):length(q)]
+    tau <- q[nvar+1]
+    eta <- X %*% beta + theta2[iExpand]
+    norm <- pnorm(eta)
+    prob <- ifelse(y, norm, 1-norm)
+    (sum(log(prob))+sum(dnorm(theta2, sd=tau, log=TRUE)))/(tau^2)
+    #log(prod(prob)*prod(dnorm(theta2, sd=tau))/(tau^2))
 }
 
 dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
@@ -273,7 +286,11 @@ dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
       theta <- theta2[iExpand]
                                         # compute derivatives using formula
       eta <- X %*% beta + theta
-      term1 <- (2*y - 1)*dnorm(-eta^2/2)
+      cum <- pnorm(eta)
+      dens <- dnorm(eta)
+      numerator <- (y-cum)*dens
+      denominator <- cum*(1-cum)
+      term1 <- numerator/denominator
       term1mat <- matrix(term1, nrow=nrow(X), ncol=nvar)
       dldbeta <- apply(term1mat*X, 2, sum)
       # tapply and contract, which orders theta2, both
@@ -335,6 +352,24 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
   theta2 <- theta2[,"mean"]
   tau <- sqrt(sum((theta2-mean(theta2))^2))/(n.class-nvar)
+
+  # check analytic derivatives
+  danalytic <- dLogDens(c(beta, tau, theta2), nvar, n.class, gf.full, X, y, iExpand)
+  myenv <- new.env()
+  assign("x", c(beta, tau, theta2), envir=myenv)
+  assign("nvar", nvar, envir=myenv)
+  assign("n.class", n.class, envir=myenv)
+  assign("gf.full", gf.full, envir=myenv)
+  assign("X", X, envir=myenv)
+  assign("y", y, envir=myenv)
+  assign("iExpand", iExpand, envir=myenv)
+  assign("logDens", logDens, envir=myenv)
+  r <- numericDeriv(quote(logDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
+  dnumeric <- c(attr(r, "gradient"))
+  delta <- danalytic-dnumeric
+  browser()
+
+
   epsilon <- 0.02
   LFsteps <- 20
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=100,

@@ -1,5 +1,6 @@
 require("plyr")
 require("truncnorm")
+require("HybridMC")
 
 ## exploratory functions to get posterior likelihoods given a linear predictor
 ## that is normal
@@ -253,6 +254,36 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
   return(y[!ry])
 }
 
+# functions for use by hybrid monte carlo
+# These are the log density of a probit model (without any Z terms)
+# and its derivatives
+# parameter ordering for q is beta, tau, theta2
+logDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
+    beta <- q[1:nvar]
+    theta2 <- q[(nvar+2):length(q)]
+    tau <- q[nvar+1]
+    eta <- X %*% beta + theta2[iExpand]
+    -(2+n.class)*log(tau)+sum((2*y-1)*pnorm(eta))-sum(theta2^2)/(2*tau^2)
+}
+
+dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
+      beta <- q[1:nvar]
+      theta2 <- q[(nvar+2):length(q)]
+      tau <- q[nvar+1]
+      theta <- theta2[iExpand]
+                                        # compute derivatives using formula
+      eta <- X %*% beta + theta
+      term1 <- (2*y - 1)*dnorm(-eta^2/2)
+      term1mat <- matrix(term1, nrow=nrow(X), ncol=nvar)
+      dldbeta <- apply(term1mat*X, 2, sum)
+      # tapply and contract, which orders theta2, both
+      # use the same order, and so the addition below should work.
+      dldtheta <- tapply(term1, gf.full, sum)-theta2/tau^2
+      dldtau <- (-2-n.class+sum(theta2^2)/tau^2)/tau
+      c(dldbeta, dldtau, dldtheta)
+  }
+
+
 # Use hybrid monte carlo
 # Initially I'll just see if I can compute the derivatives correctly
 mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
@@ -269,47 +300,14 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   n.class <- length(unique(x[, type==(-2)]))
   gf.full <- factor(x[,type==(-2)], labels=1:n.class)
   ids <- contract(data.frame(gf.full), gf.full)
+  iExpand <- match(gf.full, ids)
   gf <- gf.full[ry]
 
   X <- as.matrix(x[,type>0])
   nvar <- ncol(X)
-  beta <- rep(0, nvar)
-  tau <- 1.0
-  # level 2 latent variables initial values
-  theta2 <- rep(0, n.class)
-  iExpand <- match(gf.full, ids)
-  theta <- theta2[iExpand]
 
-  # compute derivatives using formula
-  eta <- X %*% beta + theta
-  term1 <- (2*y - 1)*dnorm(-eta^2/2)
-  term1mat <- matrix(term1, nrow=nrow(X), ncol=nvar)
-  dldbeta <- apply(term1mat*X, 2, sum)
-  # tapply and contract, which orders theta2, both
-  # use the same order, and so the addition below should work.
-  dldtheta <- tapply(term1, gf.full, sum)-theta2/tau^2
-  dldtau <- (-2-n.class+sum(theta2^2)/tau^2)/tau
-
-
-  # compute numerical derivatives using the likelihood
-  # parameters p are beta, theta2, tau in that order
-  f <- function(p){
-      # override beta, theta2, tau and eta from outer scope
-      beta <- p[1:nvar]
-      theta2 <- p[(nvar+1):(nvar+n.class)]
-      tau <- p[nvar+n.class+1]
-      eta <- X %*% beta + theta2[iExpand]
-      -(2+n.class)*log(tau)+sum((2*y-1)*pnorm(eta))-sum(theta2^2)/(2*tau^2)
-  }
-
-  myenv <- new.env()
-  assign("p", c(beta, theta2, tau), envir=myenv)
-  dl <- numericDeriv(quote(f(p)), "p", myenv)
-  dld <- c(attr(dl, "gradient"))
-  delta <- dld-c(dldbeta, dldtheta, dldtau)
-                                        # compute some constants for the loop
-  ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSR_Env[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
+  # pick plausible starting values by doing a linear regression
+  # on a logistic transform of observation
   xtx <- t(X) %*% X
   ridge <- 0.00001
   pen <- ridge * diag(xtx)
@@ -331,69 +329,32 @@ browser(expr=is.null(.ESSR_Env[['.ESSBP.']][["@4@"]]))##:ess-bp-end:##
 
   # continue setting initial values
 
-  beta.post.mean <- t(z %*% X %*% v)
-  beta <- beta.post.mean
+  beta <- t(z %*% X %*% v)
   resid <- z-X%*%beta
   # level 2 latent variables initial values
   theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
-  iExpand <- match(gf.full, theta2$id)
   theta2 <- theta2[,"mean"]
+  tau <- sqrt(sum((theta2-mean(theta2))^2))/(n.class-nvar)
+  epsilon <- 0.02
+  LFsteps <- 20
+  r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=100,
+                          logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
+                          LFsteps=LFsteps, compWeights=1, MPwidth=1,
+                          MPweights=1,
+                          nvar=nvar, n.class=n.class, gf.full=gf.full,
+                          X=X, y=y,
+                          iExpand=iExpand)
+  # note this is already type mcmc
+  MCTRACE <<- r
+
+  # impute missing y from final value of parameters
+  q <- r[end(r),]
+  beta <- q[1:nvar]
+  theta2 <- p[(nvar+1):length(q)]
+  tau <- p[nvar+1]
   theta <- theta2[iExpand]
 
-  # No initial values needed
-  tau <- NA_real_
-  z.prior.mean = rep(NA_real_, nrow(X))
-
-  # level 1 variance is a constant in this model
-  sigma <- 1.0
-
-  nvar <- ncol(v)
-  ntrace <- 1+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
-  MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
-  # order is all the posterior values and then some related stats
-  # final value is acceptance rate for candidate z
-  MCTRACE[1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
-
-  # pull calculations out of loop
-  # if y is missing we draw a normal, otherwise a truncated normal
-  # consistent with the observed y
-  trunclo <- ifelse(ry & (y==1), 0, -Inf)
-  trunchi <- ifelse(ry & (y==0), 0, Inf)
-
-  for (iter in 1:n.iter){
-      # X already has an intercept in it
-
-      # Gelman et al 2004 pp. 299-301 for hierarchical normal model
-      # draw posterior values for tau given all other values
-      # theta2 ~ Norm(0, tau)
-      tau <- sqrt(sum(theta2^2)/rchisq(1, n.class-1))
-
-      # draw posterior theta
-      thetapost <- ddply(data.frame(id=gf.full, r= z - X %*%beta.post.mean), .(id), function(df) {
-          x <- df$r
-          n <- length(x)
-          varpost <- 1/(1/tau^2 + n/sigma^2)
-          mupost <- sum(x)/sigma^2*varpost
-          data.frame(mu=mupost, var=varpost)
-      })
-      theta2 <- rnorm(n.class, mean=thetapost$mu,
-                      sd=sqrt(thetapost$var))
-      # replicate theta2 onto level 1
-      theta <- theta2[iExpand]
-
-      ## draw posterior beta
-      w <- z-theta
-      beta.post.mean <- t(w %*% X %*% v)
-      residuals <- z - X %*% beta.post.mean - theta
-      beta <- beta.post.mean + (t(chol((v + t(v))/2)) %*% rnorm(ncol(X))) * sigma
-
-      # z.prior.mean is mean parameter for center of prior dist of z given the coefficient draws
-      z.prior.mean <- X %*% beta + theta
-      z <- rtruncnorm(nrow(X), a=trunclo, b=trunchi, mean=z.prior.mean)
-
-      # and impute the missing observed values
-      y[nry] <- z[nry]>0
-      MCTRACE[iter+1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
-  }
-  return(y[!ry])
+  eta <- X[!ry,] %*% beta + theta[!ry]
+  ymiss <- rbinom(nmiss, 1, pnorm(eta))
+  return(ymiss)
 }

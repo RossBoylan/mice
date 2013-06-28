@@ -25,7 +25,8 @@ Depends:
     MASS,
     nnet,
     plyr,
-    truncnorm
+    truncnorm,
+    HybridMC
 Imports:
     rpart
 Suggests:

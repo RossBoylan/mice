@@ -389,7 +389,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   ## browser()
 
 
-  epsilon <- 0.02
+  epsilon <- c(0.01, 0.04)
   LFsteps <- 20
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=100,
                           logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,

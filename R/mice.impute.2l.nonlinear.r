@@ -258,28 +258,19 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 # These are the log density of a probit model (without any Z terms)
 # and its derivatives
 # parameter ordering for q is beta, tau, theta2
-# logDensold is wrong
-logDensold <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
-    beta <- q[1:nvar]
-    theta2 <- q[(nvar+2):length(q)]
-    tau <- q[nvar+1]
-    eta <- X %*% beta + theta2[iExpand]
-    -(2+n.class)*log(tau)+sum((2*y-1)*pnorm(eta))-sum(theta2^2)/(2*tau^2)
-}
-
-# since I keep geting it wrong, take log numerically
 logDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
     beta <- q[1:nvar]
     theta2 <- q[(nvar+2):length(q)]
     tau <- q[nvar+1]
     eta <- X %*% beta + theta2[iExpand]
-    norm <- pnorm(eta)
-    prob <- ifelse(y, norm, 1-norm)
-    (sum(log(prob))+sum(dnorm(theta2, sd=tau, log=TRUE)))-2*log(tau)
-    #log(prod(prob)*prod(dnorm(theta2, sd=tau))/(tau^2))
+    lprob <- ifelse(y, pnorm(eta, lower.tail=TRUE, log.p=TRUE),
+                    pnorm(eta, lower.tail=FALSE, log.p=TRUE))
+    f <- sum(lprob)+sum(dnorm(theta2, sd=tau, log=TRUE))-2*log(tau)
+    f
 }
 
 dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
+      if(any(is.na(q))) recover()
       beta <- q[1:nvar]
       theta2 <- q[(nvar+2):length(q)]
       tau <- q[nvar+1]
@@ -288,16 +279,32 @@ dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
       eta <- X %*% beta + theta
       cum <- pnorm(eta)
       dens <- dnorm(eta)
-      numerator <- (y-cum)*dens
-      denominator <- cum*(1-cum)
-      term1 <- numerator/denominator
+      # we want term1 = (y-cum)*dens/[cum*(1-cum)]
+      # this can get ugly at extreme eta
+      # if y=1, term1 = dens/cum (ugly for eta<<0)
+      # if y=0, term1 = -dens/(1-cum) (ugly for eta>>0)
+      # in either ugly case, Hopital + maxima says it behaves roughly like abs(eta)
+      iWild <- ifelse(y==1, eta < -4, eta > 4)
+      term1 <- abs(eta)  # easiest to set dimensions with the extreme case
+      iRegular <- (! iWild ) & (y==1)
+      # subset at start to minimize computations
+      term1[iRegular] <- dens[iRegular]/cum[iRegular]
+
+      iRegular <- (! iWild) & (y==0)
+      term1[iRegular] <- dens[iRegular]/(cum[iRegular]-1)
+
       term1mat <- matrix(term1, nrow=nrow(X), ncol=nvar)
       dldbeta <- apply(term1mat*X, 2, sum)
       # tapply and contract, which orders theta2, both
       # use the same order, and so the addition below should work.
       dldtheta <- tapply(term1, gf.full, sum)-theta2/tau^2
       dldtau <- (-2-n.class+sum(theta2^2)/tau^2)/tau
-      c(dldbeta, dldtau, dldtheta)
+      r <- c(dldbeta, dldtau, dldtheta)
+    if(any(is.na(r))) recover()
+      MCTRACE2 <<- c(MCTRACE2, list(c(r, q)))
+      r
+      #r <- pmax(-500, r)
+      #pmin(500, r)
   }
 
 # calculate numeric derivative of scalar value f at x
@@ -319,6 +326,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
 
   ## Initialize
+  MCTRACE2 <<- list()  # will hold calls to logDens
   #n.iter <- 5
   n.iter <- 1000
   nry <- !ry
@@ -402,5 +410,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
   eta <- X[!ry,] %*% beta + theta[!ry]
   ymiss <- rbinom(nmiss, 1, pnorm(eta))
+  MCTRACE2 <<- do.call(rbind, MCTRACE2)
   return(ymiss)
 }

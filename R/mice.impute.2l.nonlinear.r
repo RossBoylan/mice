@@ -393,24 +393,25 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   #49: In dnorm(theta2, sd = tau, log = TRUE) : NaNs produced
   #50: In log(tau) : NaNs produced
 
-  ## q <- c(beta, tau, theta2)
-  ## danalytic <- dLogDens(q, nvar, n.class, gf.full, X, y, iExpand)
-  ## myenv <- new.env()
-  ## assign("x", q, envir=myenv)
-  ## assign("nvar", nvar, envir=myenv)
-  ## assign("n.class", n.class, envir=myenv)
-  ## assign("gf.full", gf.full, envir=myenv)
-  ## assign("X", X, envir=myenv)
-  ## assign("y", y, envir=myenv)
-  ## assign("iExpand", iExpand, envir=myenv)
-  ## assign("dLogDens", dLogDens, envir=myenv)
-  ## # the next step is slow since it computes all cross derivatives
-  ## r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
-  ## d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
-  ## iZero <- d2 == 0
-  ## d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
-  ## weights <- d2a^2
-  weights <- 1.0
+  q <- c(beta, tau, theta2)
+  danalytic <- dLogDens(q, nvar, n.class, gf.full, X, y, iExpand)
+  myenv <- new.env()
+  assign("x", q, envir=myenv)
+  assign("nvar", nvar, envir=myenv)
+  assign("n.class", n.class, envir=myenv)
+  assign("gf.full", gf.full, envir=myenv)
+  assign("X", X, envir=myenv)
+  assign("y", y, envir=myenv)
+  assign("iExpand", iExpand, envir=myenv)
+  assign("dLogDens", dLogDens, envir=myenv)
+  # the next step is slow since it computes all cross derivatives
+  r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
+  d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
+  iZero <- d2 == 0
+  d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
+  weights <- abs(1/d2a)
+  #weights <- d2a^2
+  #weights <- 1.0
   
   epsilon <- c(0.0001, 0.0004)
   LFsteps <- 20

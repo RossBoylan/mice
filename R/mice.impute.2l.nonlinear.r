@@ -388,12 +388,35 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   ## myderiv <- slope(tempfun, c(beta, tau, theta2), 1, 10^seq(-5, 2))
   ## browser()
 
+  # scale the problem
+  # didn't seem to work, ie. chain didn't move.  got lots of warnings that
+  #49: In dnorm(theta2, sd = tau, log = TRUE) : NaNs produced
+  #50: In log(tau) : NaNs produced
 
-  epsilon <- c(0.01, 0.04)
+  ## q <- c(beta, tau, theta2)
+  ## danalytic <- dLogDens(q, nvar, n.class, gf.full, X, y, iExpand)
+  ## myenv <- new.env()
+  ## assign("x", q, envir=myenv)
+  ## assign("nvar", nvar, envir=myenv)
+  ## assign("n.class", n.class, envir=myenv)
+  ## assign("gf.full", gf.full, envir=myenv)
+  ## assign("X", X, envir=myenv)
+  ## assign("y", y, envir=myenv)
+  ## assign("iExpand", iExpand, envir=myenv)
+  ## assign("dLogDens", dLogDens, envir=myenv)
+  ## # the next step is slow since it computes all cross derivatives
+  ## r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
+  ## d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
+  ## iZero <- d2 == 0
+  ## d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
+  ## weights <- d2a^2
+  weights <- 1.0
+  
+  epsilon <- c(0.0001, 0.0004)/5
   LFsteps <- 20
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=100,
                           logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
-                          LFsteps=LFsteps, compWeights=1, MPwidth=1,
+                          LFsteps=LFsteps, compWeights=weights, MPwidth=1,
                           MPweights=1,
                           nvar=nvar, n.class=n.class, gf.full=gf.full,
                           X=X, y=y,

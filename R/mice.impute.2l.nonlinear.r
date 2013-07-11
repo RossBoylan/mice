@@ -138,7 +138,7 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   return(y[!ry])
 }
 
-mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
+mice.impute.2lmixed.logit.AlbertChibb <- function(y, ry, x, type, intercept=TRUE, ...)
 {
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster
@@ -319,7 +319,7 @@ slope <- function(f, x, i, steps) {
 
 # Use hybrid monte carlo
 # Initially I'll just see if I can compute the derivatives correctly
-mice.impute.2lmixed.logit.hmc <- function(y, ry, x, type, intercept=TRUE, ...)
+mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 {
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster

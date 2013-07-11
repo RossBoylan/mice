@@ -368,6 +368,8 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   theta2 <- ddply(data.frame(id=gf.full, resid=resid), .(id), summarize, mean=mean(resid))
   theta2 <- theta2[,"mean"]
   tau <- sqrt(sum((theta2-mean(theta2))^2)/(n.class-nvar))
+  # hack since tau seems low
+  tau <- tau*2.5
 
   ## # check analytic derivatives
   ## danalytic <- dLogDens(c(beta, tau, theta2), nvar, n.class, gf.full, X, y, iExpand)

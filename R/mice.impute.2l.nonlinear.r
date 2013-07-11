@@ -301,7 +301,7 @@ dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
       dldtau <- (-2-n.class+sum(theta2^2)/tau^2)/tau
       r <- c(dldbeta, dldtau, dldtheta)
     if(any(is.na(r))) recover()
-      MCTRACE2 <<- c(MCTRACE2, list(c(r, q)))
+      #MCTRACE2 <<- c(MCTRACE2, list(c(r, q)))
       r
       #r <- pmax(-500, r)
       #pmin(500, r)
@@ -324,10 +324,9 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster
 
-
   ## Initialize
-  MCTRACE2 <<- list()  # will hold calls to logDens
-  #n.iter <- 5
+  #MCTRACE2 <<- list()  # will hold calls to logDens
+  #n.iter <- 200
   n.iter <- 1000
   nry <- !ry
   nmiss <- sum(nry)
@@ -434,6 +433,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
   eta <- X[!ry,] %*% beta + theta[!ry]
   ymiss <- rbinom(nmiss, 1, pnorm(eta))
-  MCTRACE2 <<- do.call(rbind, MCTRACE2)
+  #MCTRACE2 <<- do.call(rbind, MCTRACE2)
   return(ymiss)
 }

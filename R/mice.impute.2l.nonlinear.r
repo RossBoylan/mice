@@ -408,11 +408,11 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
   iZero <- d2 == 0
   d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
-  weights <- abs(1/d2a)
+  weights <- sqrt(abs(1/d2a))
   #weights <- d2a^2
   #weights <- 1.0
   
-  epsilon <- c(0.01, 0.04)
+  epsilon <- c(0.001, 0.004)
   LFsteps <- 20
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,
                           logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,

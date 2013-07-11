@@ -327,7 +327,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   ## Initialize
   #MCTRACE2 <<- list()  # will hold calls to logDens
   #n.iter <- 200
-  n.iter <- 1000
+  n.iter <- 500
   nry <- !ry
   nmiss <- sum(nry)
   n.class <- length(unique(x[, type==(-2)]))
@@ -413,7 +413,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   #weights <- 1.0
   
   epsilon <- c(0.01, 0.04)
-  LFsteps <- 80
+  LFsteps <- 160
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,
                           logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
                           LFsteps=LFsteps, compWeights=weights, MPwidth=1,

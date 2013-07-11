@@ -138,7 +138,7 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   return(y[!ry])
 }
 
-mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE, ...)
+mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 {
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster
@@ -155,7 +155,7 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 
   ## Initialize
   #n.iter <- 5
-  n.iter <- 1000
+  n.iter <- 500
   nry <- !ry
   nmiss <- sum(nry)
   n.class <- length(unique(x[, type==(-2)]))
@@ -205,10 +205,10 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 
   nvar <- ncol(v)
   ntrace <- 1+nvar+n.class+nrow(X)+nmiss+nvar+nrow(X)
-  MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
+  #MCTRACE <<- matrix(NA_real_, nrow=n.iter+1, ncol= ntrace)
   # order is all the posterior values and then some related stats
   # final value is acceptance rate for candidate z
-  MCTRACE[1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+  #MCTRACE[1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
 
   # pull calculations out of loop
   # if y is missing we draw a normal, otherwise a truncated normal
@@ -249,7 +249,7 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 
       # and impute the missing observed values
       y[nry] <- z[nry]>0
-      MCTRACE[iter+1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
+      #MCTRACE[iter+1,] <<- c(tau, beta, theta2, z, y[nry], beta.post.mean, z.prior.mean)
   }
   return(y[!ry])
 }
@@ -319,7 +319,7 @@ slope <- function(f, x, i, steps) {
 
 # Use hybrid monte carlo
 # Initially I'll just see if I can compute the derivatives correctly
-mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
+mice.impute.2lmixed.logit.hmc <- function(y, ry, x, type, intercept=TRUE, ...)
 {
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster

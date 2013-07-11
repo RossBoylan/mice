@@ -408,14 +408,14 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
   iZero <- d2 == 0
   d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
-  # hack to rescale tau
-  d2a[13] = d2a[13]*4
-  weights <- abs(1/d2a)
+  #weights <- abs(1/d2a)
+  weights <- 1/sqrt(abs(d2))
+  weights[iZero] <- 1
   #weights <- d2a^2
   #weights <- 1.0
   
   epsilon <- c(0.01, 0.04)
-  LFsteps <- 160
+  LFsteps <- 80
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,
                           logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
                           LFsteps=LFsteps, compWeights=weights, MPwidth=1,

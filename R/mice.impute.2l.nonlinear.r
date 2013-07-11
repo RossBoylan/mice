@@ -409,7 +409,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   iZero <- d2 == 0
   d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
   # hack to rescale tau
-  d2a[13] = d2a[13]*10
+  d2a[13] = d2a[13]*4
   weights <- abs(1/d2a)
   #weights <- d2a^2
   #weights <- 1.0

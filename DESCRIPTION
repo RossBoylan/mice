@@ -23,12 +23,12 @@ Depends:
     methods,
     lattice,
     MASS,
-    nnet,
+    nnet
+Imports:
+    rpart,
     plyr,
     truncnorm,
     HybridMC
-Imports:
-    rpart
 Suggests:
     AGD,
     gamlss,

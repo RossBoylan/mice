@@ -431,13 +431,13 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
   epsilon <- c(0.01, 0.04)
   LFsteps <- 80
-  r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,
-                          logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
-                          LFsteps=LFsteps, compWeights=weights, MPwidth=1,
-                          MPweights=1,
-                          nvar=nvar, n.class=n.class, gf.full=gf.full,
-                          X=X, y=y,
-                          iExpand=iExpand)
+  r <- hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,
+                logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
+                LFsteps=LFsteps, compWeights=weights, MPwidth=1,
+                MPweights=1,
+                nvar=nvar, n.class=n.class, gf.full=gf.full,
+                X=X, y=y,
+                iExpand=iExpand)
   # note this is already type mcmc
   MCTRACE <<- r
 

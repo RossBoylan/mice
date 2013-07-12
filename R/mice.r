@@ -231,6 +231,12 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     #
     # Copyright (c) 2010 TNO Quality of Life, Leiden
     #
+
+    # Note that the variables state and loggedEvents below are written to be subroutines,
+    # even though they do not appear in function call or return values.
+    # The global variable .Random.seed also gets updated by subroutines.
+    # grep assign *.r to find where those assignments happen.
+
     # ------------------------------CHECK.VISITSEQUENCE------------------------
     check.visitSequence <- function(setup) {
         nmis <- setup$nmis

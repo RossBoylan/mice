@@ -403,9 +403,24 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   assign("y", y, envir=myenv)
   assign("iExpand", iExpand, envir=myenv)
   assign("dLogDens", dLogDens, envir=myenv)
+  densWrap <- function(x0, i, x, nvar, n.class, gf.full, X, y, iExpand) {
+      x[i] <- x0
+      dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)[i]
+  }
+  assign("densWrap", densWrap, envir=myenv)
+  d2  <- sapply(seq(length(q)), function(i) {
+      assign("i", i, envir=myenv)
+      assign("x0", q[i], envir=myenv)
+      r <- numericDeriv(quote(densWrap(x0, i, x, nvar, n.class, gf.full, X, y, iExpand)), "x0", myenv)
+      # gradient is a 1x1 matrix
+      c(attr(r, "gradient"))
+  })
+
   # the next step is slow since it computes all cross derivatives
   r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
-  d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
+  d2orig <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
+  delta2 <- d2-d2orig
+  
   iZero <- d2 == 0
   d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
   weights <- abs(1/d2a)

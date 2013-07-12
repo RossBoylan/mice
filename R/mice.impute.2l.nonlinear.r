@@ -138,7 +138,7 @@ mice.impute.2l.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   return(y[!ry])
 }
 
-mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE, ...)
+mice.impute.2lmixed.logit.AlbertChibb <- function(y, ry, x, type, intercept=TRUE, ...)
 {
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster
@@ -155,7 +155,7 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 
   ## Initialize
   #n.iter <- 5
-  n.iter <- 200
+  n.iter <- 500
   nry <- !ry
   nmiss <- sum(nry)
   n.class <- length(unique(x[, type==(-2)]))
@@ -301,7 +301,7 @@ dLogDens <- function(q, nvar, n.class, gf.full, X, y, iExpand) {
       dldtau <- (-2-n.class+sum(theta2^2)/tau^2)/tau
       r <- c(dldbeta, dldtau, dldtheta)
     if(any(is.na(r))) recover()
-      MCTRACE2 <<- c(MCTRACE2, list(c(r, q)))
+      #MCTRACE2 <<- c(MCTRACE2, list(c(r, q)))
       r
       #r <- pmax(-500, r)
       #pmin(500, r)
@@ -324,11 +324,10 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
     ## mixed level 1 and 2 predictors of outcomes
     ## variables with 2 at end of name are level 2, one obs /cluster
 
-
   ## Initialize
-  MCTRACE2 <<- list()  # will hold calls to logDens
-  #n.iter <- 5
-  n.iter <- 1000
+  #MCTRACE2 <<- list()  # will hold calls to logDens
+  #n.iter <- 200
+  n.iter <- 500
   nry <- !ry
   nmiss <- sum(nry)
   n.class <- length(unique(x[, type==(-2)]))
@@ -404,17 +403,33 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   assign("y", y, envir=myenv)
   assign("iExpand", iExpand, envir=myenv)
   assign("dLogDens", dLogDens, envir=myenv)
+  ## the next code tried to avoid computing the cross-derivatives
+  ## but it doesn't since the inner function still computes them all
+  ## densWrap <- function(x0, i, x, nvar, n.class, gf.full, X, y, iExpand) {
+  ##     x[i] <- x0
+  ##     dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)[i]
+  ## }
+  ## assign("densWrap", densWrap, envir=myenv)
+  ## d2  <- sapply(seq(length(q)), function(i) {
+  ##     assign("i", i, envir=myenv)
+  ##     assign("x0", q[i], envir=myenv)
+  ##     r <- numericDeriv(quote(densWrap(x0, i, x, nvar, n.class, gf.full, X, y, iExpand)), "x0", myenv)
+  ##     # gradient is a 1x1 matrix
+  ##     c(attr(r, "gradient"))
+  ## })
+
   # the next step is slow since it computes all cross derivatives
   r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
-  d2 <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
+  mm <- attr(r, "gradient")
+  d2 <- diag(attr(r, "gradient"))
+
   iZero <- d2 == 0
   d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)
   weights <- abs(1/d2a)
-  #weights <- d2a^2
   #weights <- 1.0
 
   epsilon <- c(0.01, 0.04)
-  LFsteps <- 20
+  LFsteps <- 80
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,
                           logDens=logDens, dLogDens=dLogDens, epsilon=epsilon,
                           LFsteps=LFsteps, compWeights=weights, MPwidth=1,
@@ -434,6 +449,6 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
 
   eta <- X[!ry,] %*% beta + theta[!ry]
   ymiss <- rbinom(nmiss, 1, pnorm(eta))
-  MCTRACE2 <<- do.call(rbind, MCTRACE2)
+  #MCTRACE2 <<- do.call(rbind, MCTRACE2)
   return(ymiss)
 }

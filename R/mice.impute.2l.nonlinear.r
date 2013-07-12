@@ -155,7 +155,7 @@ mice.impute.2lmixed.logit.AlbertChib <- function(y, ry, x, type, intercept=TRUE,
 
   ## Initialize
   #n.iter <- 5
-  n.iter <- 1000
+  n.iter <- 200
   nry <- !ry
   nmiss <- sum(nry)
   n.class <- length(unique(x[, type==(-2)]))
@@ -412,7 +412,7 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   weights <- abs(1/d2a)
   #weights <- d2a^2
   #weights <- 1.0
-  
+
   epsilon <- c(0.01, 0.04)
   LFsteps <- 20
   r <- HybridMC::hybridMC(y.start=c(beta, tau, theta2), n.samp=n.iter,

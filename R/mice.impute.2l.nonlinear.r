@@ -1,6 +1,7 @@
-require("plyr")
-require("truncnorm")
-require("HybridMC")
+# This file is responsible for the following requirements
+#require("plyr")
+#require("truncnorm")
+#require("HybridMC")
 
 ## exploratory functions to get posterior likelihoods given a linear predictor
 ## that is normal

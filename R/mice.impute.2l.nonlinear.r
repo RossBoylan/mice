@@ -417,9 +417,9 @@ mice.impute.2lmixed.logit <- function(y, ry, x, type, intercept=TRUE, ...)
   })
 
   # the next step is slow since it computes all cross derivatives
-  r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
-  d2orig <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
-  delta2 <- d2-d2orig
+  #r <- numericDeriv(quote(dLogDens(x, nvar, n.class, gf.full, X, y, iExpand)), "x", myenv)
+  #d2orig <- diag(matrix(c(attr(r, "gradient")), nrow=length(q)))
+  #delta2 <- d2-d2orig
   
   iZero <- d2 == 0
   d2a <- ifelse(iZero, danalytic/min(abs(d2[!iZero]))/2, danalytic/d2)

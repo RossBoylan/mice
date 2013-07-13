@@ -509,6 +509,10 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
 
     ## Initialize response matrix r, imputation array imp, as well as some other stuff
     r <- (!is.na(p$data))
+    # imp is a list with one element for each variable to be imputed
+    # The individual elements are matrices with rows giving imputed data values
+    # and each column corresponding to one imputed data set for final analysis.
+    # As the Gibbs sampler iterates it holds the latest values along the chain.
     imp <- vector("list", ncol(p$data))
     if (m > 0) {
 

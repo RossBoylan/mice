@@ -237,6 +237,13 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     # The global variable .Random.seed also gets updated by subroutines.
     # grep assign *.r to find where those assignments happen.
 
+    # state is a list with
+    #   it   iteration number of mice Gibbs sampler
+    #   im   imputation number in the sense of distinct imputed datesets for analysis
+    #   co   variable number, focus of imputation
+    #   dep  variable name <string>
+    #   meth method used to impute <string>
+    #   log  log of events
     # ------------------------------CHECK.VISITSEQUENCE------------------------
     check.visitSequence <- function(setup) {
         nmis <- setup$nmis

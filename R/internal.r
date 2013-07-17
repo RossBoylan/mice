@@ -79,14 +79,15 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
         if (printFlag)
             cat("\n iter imp variable")
         for (k in from:to) {
-            #begin k loop : iteration loop
+            #begin k loop : iteration loop (Gibbs sampler)
             iteration <- k
             for (i in 1:m) {
-                #begin i loop    : repeated imputation loop
+                #begin i loop    : repeated imputation loop (generated dataset)
                 if (printFlag)
                   cat("\n ", iteration, " ", i)
 
-                ## fill the data with the last set of imputations
+                ## fill the data with the last set of imputations for the particular generated dataset
+                # j ranges over the indices of variables to impute
                 for (j in visitSequence) p$data[!r[, j], j] <- imp[[j]][, i]
 
                 ## augment the data with the actual dummy variables

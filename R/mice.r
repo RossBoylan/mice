@@ -554,7 +554,9 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
 
     ## delete data and imputations of automatic dummy variables
     imp <- q$imp[1:nvar]
+    extra <- q$extra
     names(imp) <- varnames
+    names(extra) <- varnames
     names(method) <- varnames
     names(form) <- varnames
     names(post) <- varnames
@@ -569,7 +571,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
                     method = method, predictorMatrix = predictorMatrix,
                     visitSequence = visitSequence, form = form, control = control, post = post,
                     seed = seed, iteration = q$iteration, lastSeedValue = .Random.seed, chainMean = q$chainMean,
-                    chainVar = q$chainVar, loggedEvents = loggedEvents)
+                    chainVar = q$chainVar, loggedEvents = loggedEvents, extra=extra)
     if (diagnostics)
         midsobj <- c(midsobj, list(pad = p))
     oldClass(midsobj) <- "mids"

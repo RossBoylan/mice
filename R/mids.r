@@ -31,6 +31,8 @@
 #'    \item{\code{seed}:}{The seed value of the solution.}
 #'    \item{\code{iteration}:}{Last Gibbs sampling iteration number.}
 #'    \item{\code{lastSeedValue}:}{The most recent seed value.}
+#'    \item{\code{extra}:}{A list of extra state or history information in a form specific
+#' to the imputation method of the corresponding variable.}
 #'    \item{\code{chainMean}:}{A list of \code{m} components. Each component is a
 #'\code{length(visitSequence)} by \code{maxit} matrix containing the mean of
 #'the generated multiple imputations. The array can be used for monitoring
@@ -93,6 +95,7 @@ setClass("mids",
              seed      = "numeric",
              iteration = "integer",
              lastSeedValue = "integer",
+             extra     = "list",
              chainMean = "array",
              chainVar  = "array",
              pad       = "list"),

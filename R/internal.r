@@ -1,8 +1,8 @@
 # ------------------------------PadModel-------------------------------
 
 padModel <- function(data, method, predictorMatrix, visitSequence, form, post, nmis, nvar) {
-    # Called by mice().  Augments the imputation model by including dummy variables. Adapts data, predictorMatrix, method and
-    # visitSequence.  Returns a list whose components make up the padded model.
+    # Called by mice().  Augments the imputation model by including dummy variables. Adapts data, predictorMatrix, method,
+    # visitSequence, form and post.  Returns a list whose components make up the padded model.
     categories <- data.frame(yes.no.categorical = factor(rep(FALSE, nvar), levels = c("TRUE", "FALSE")), number.of.dummies = rep(0,
         nvar), yes.no.dummy = factor(rep(FALSE, nvar), levels = c("TRUE", "FALSE")), corresponding.column.dummy = rep(0, nvar))
 

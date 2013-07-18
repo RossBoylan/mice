@@ -8,5 +8,7 @@ mlprobit   multi-level probit type models
 	   Takes off from multilevel.
 	   Does some probit-based approaches to binary outcomes.
 	   Implements a hybrid Monte-Carlo based sampler
+inout	   Pass more refined control options in and richer state information out
+	   Branched from master.
 
 The version of this file in master should document all the branches.

@@ -5,7 +5,7 @@
 #'class of objects has methods for the following generic functions:
 #'\code{print}, \code{summary}, \code{plot}.
 #'
-#'@section Slots: 
+#'@section Slots:
 #'  \describe{
 #'    \item{\code{call}:}{The call that created the object.}
 #'    \item{\code{data}:}{A copy of the incomplete data set.}
@@ -19,6 +19,13 @@
 #'    \item{\code{predictorMatrix}:}{A square matrix of size \code{ncol(data)}
 #'containing integers specifying the predictor set.}
 #'    \item{\code{visitSequence}:}{The sequence in which columns are visited.}
+#'    \item{\code{form}:}{A vector of strings with length \code{ncol(data)}, specifying
+#'formulae. Each string is parsed and executed within the \code{sampler()}
+#'function to create terms for the predictor.  An empty string \code{''} means do nothing.
+#'The main value
+#'lies in the easy specification of interaction terms.}
+#'     \item{\code{control}:}{A list with length \code{ncol{data}) with elements \code{NULL} or a
+#'list of control parameters for imputation of the corresponnding variable.}
 #'    \item{\code{post}:}{A vector of strings of length \code{ncol(data)} with
 #'commands for post-processing}
 #'    \item{\code{seed}:}{The seed value of the solution.}
@@ -41,7 +48,7 @@
 #'information about the padding operation).}
 #'\item{\code{loggedEvents}:}{A matrix with six columns containing a record of
 #'automatic removal actions. It is \code{NULL} is no action was made.  At
-#'initialization the program does the following three actions: 
+#'initialization the program does the following three actions:
 #'1. A variable that contains missing values, that is not imputed and that is used as a
 #'predictor is removed, 2. a constant variable is removed, and 3. a collinear
 #'variable is removed. During iteration, the program does the following
@@ -56,9 +63,9 @@
 #'removed predictors.}
 #'}
 #'
-#' @note Many of the functions of the \code{mice} package do not use the S4 class definitions, 
+#' @note Many of the functions of the \code{mice} package do not use the S4 class definitions,
 #' and instead rely on the S3 list equivalent \code{oldClass(obj) <- "mids"}.
-#' 
+#'
 #'@name mids-class
 #'@rdname mids-class
 #'@aliases mids-class mids
@@ -80,6 +87,8 @@ setClass("mids",
              method    = "character",
              predictorMatrix = "matrix",
              visitSequence = "numeric",
+             form      = "character",
+             control   = "list",
              post      = "character",
              seed      = "numeric",
              iteration = "integer",

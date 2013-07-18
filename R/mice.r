@@ -121,16 +121,14 @@
 #'\code{'monotone'} (sorted in increasing amount of missingness) and
 #'\code{'revmonotone'} (reverse of monotone). The keyword should be supplied as
 #'a string and may be abbreviated.
-#'@param post A vector of strings with length \code{ncol(data)}, specifying
-#'expressions. Each string is parsed and executed within the \code{sampler()}
-#'function to postprocess imputed values.  The default is to do nothing,
-#'indicated by a vector of empty strings \code{''}.
 #'@param form A vector of strings with length \code{ncol(data)}, specifying
 #'formulae. Each string is parsed and executed within the \code{sampler()}
 #'function to create terms for the predictor.  The default is to do nothing,
 #'indicated by a vector of empty strings \code{''}.  The main value
 #'lies in the easy specification of interaction terms.  The user must
 #'ensure that the set of variables in the formula match those in \code{predictors}.
+#'@param control A list with length \code{ncol{data}) with elements \code{NULL} or a
+#'list of control parameters for imputation of the corresponnding variable.
 #'@param defaultMethod A vector of three strings containing the default
 #'imputation methods for numerical columns, factor columns with 2 levels, and
 #'columns with (unordered or ordered) factors with more than two levels,
@@ -140,6 +138,10 @@
 #'polytomous regression imputation for unordered categorical data (factor >= 2
 #'levels) \code{polr}, proportional odds model for (ordered, >= 2 levels)
 #'@param maxit A scalar giving the number of iterations. The default is 5.
+#'@param post A vector of strings with length \code{ncol(data)}, specifying
+#'expressions. Each string is parsed and executed within the \code{sampler()}
+#'function to postprocess imputed values.  The default is to do nothing,
+#'indicated by a vector of empty strings \code{''}.
 #'@param diagnostics A Boolean flag. If \code{TRUE}, diagnostic information
 #'will be appended to the value of the function. If \code{FALSE}, only the
 #'imputed data are saved. The default is \code{TRUE}.
@@ -220,6 +222,7 @@
 mice <- function(data, m = 5, method = vector("character", length = ncol(data)), predictorMatrix = (1 - diag(1, ncol(data))),
     visitSequence = (1:ncol(data))[apply(is.na(data), 2, any)],
     form = vector("character", length = ncol(data)),
+    control = vector("list", length = ncol(data)),
     post = vector("character", length = ncol(data)), defaultMethod = c("pmm",
         "logreg", "polyreg", "polr"), maxit = 5, diagnostics = TRUE, printFlag = TRUE, seed = NA, imputationMethod = NULL,
     defaultImputationMethod = NULL, data.init = NULL, ...)
@@ -491,7 +494,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     setup <- list(visitSequence = visitSequence, method = method,
                   defaultMethod = defaultMethod,
                   predictorMatrix = predictorMatrix,
-                  form = form,
+                  form = form, control=control,
         post = post, nvar = nvar, nmis = nmis, varnames = varnames)
     setup <- check.visitSequence(setup)
     setup <- check.method(setup, data)
@@ -562,9 +565,11 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
         row.names(loggedEvents) <- 1:nrow(loggedEvents)
 
     ## save, and return
-    midsobj <- list(call = call, data = as.data.frame(p$data[, 1:nvar]), m = m, nmis = nmis, imp = imp, method = method, predictorMatrix = predictorMatrix,
-        visitSequence = visitSequence, form = form, post = post, seed = seed, iteration = q$iteration, lastSeedValue = .Random.seed, chainMean = q$chainMean,
-        chainVar = q$chainVar, loggedEvents = loggedEvents)
+    midsobj <- list(call = call, data = as.data.frame(p$data[, 1:nvar]), m = m, nmis = nmis, imp = imp,
+                    method = method, predictorMatrix = predictorMatrix,
+                    visitSequence = visitSequence, form = form, control = control, post = post,
+                    seed = seed, iteration = q$iteration, lastSeedValue = .Random.seed, chainMean = q$chainMean,
+                    chainVar = q$chainVar, loggedEvents = loggedEvents)
     if (diagnostics)
         midsobj <- c(midsobj, list(pad = p))
     oldClass(midsobj) <- "mids"

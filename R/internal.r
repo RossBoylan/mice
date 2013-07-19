@@ -69,6 +69,12 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
     from <- fromto[1]
     to <- fromto[2]
     maxit <- to - from + 1
+    # extra holds dynamic state of the variable specific imputation.
+    # extra is a list of lists.  The outer list is indexed by imputed dataset,
+    # and the inner list is indexed by imputed variable.  Entries in the inner list
+    # have entries that are initially NULL.  Specific imputation methods will provide an appropriately typed object
+    # that they pass back, which in turn are passed into the imputation method on the next Gibbs step.
+    extra <- lapply(seq(m), function(i) vector("list", p$nvar))
     if (maxit > 0)
         chainVar <- chainMean <- array(0, dim = c(length(visitSequence), maxit, m), dimnames = list(dimnames(data)[[2]][visitSequence],
             1:maxit, paste("Chain", 1:m))) else chainVar <- chainMean <- NULL
@@ -115,11 +121,7 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                     if (substring(tolower(theMethod), 1, 2) != "2l") {
                       # RJ: for an non-multilevel imputation method
                       # RB: formula-based  specification
-                      if (! is.null(p$form) && nchar(p$form[j])>0) {
-                          myform <- paste(p$form[j], "0", sep="+")
-                          x <- model.matrix(formula(myform), p$data)
-                      } else
-                          x <- p$data[, p$predictorMatrix[j, ] == 1, drop = FALSE]
+                      x <- model.matrix(p$form[[j]], p$data)
                       y <- p$data[, j]
                       ry <- r[, j]
                       nam <- vname
@@ -128,16 +130,12 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       f <- paste("mice.impute", theMethod, sep = ".")
                       keep <- remove.lindep(x, y, ry, ...)
                       x <- x[, keep, drop = FALSE]
-                      imp[[j]][, i] <- do.call(f, args = list(y, ry, x, ...))
+                      innerReturn <- do.call(f, args = list(y, ry, x, p$control[[j]], extra[[i]][[j]], ...))
                     } else {
                       # for a multilevel imputation method
                       predictors <- p$predictorMatrix[j, ] != 0
                       # RB: formula-based specification
-                      if (! is.null(p$form) && nchar(p$form[j])>0) {
-                          myform <- paste(p$form[j], "0", sep="+")
-                          x <- model.matrix(formula(myform), p$data)
-                      } else
-                          x <- p$data[, predictors, drop = FALSE]
+                      x <- model.matrix(p$form[[j]], p$data)
                       y <- p$data[, j]
                       ry <- r[, j]
                       type <- p$predictorMatrix[j, predictors]
@@ -148,13 +146,21 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       keep <- remove.lindep(x, y, ry, ...)
                       x <- x[, keep, drop = FALSE]
                       type <- type[keep]
-                      imp[[j]][, i] <- do.call(f, args = list(y, ry, x, type, ...))
+                      innerReturn <- do.call(f, args = list(y, ry, x, type, p$control[[j]], extra[[i]][[jj]], ...))
+                    }
+                    if (inherits(innerReturn, "innerReturn") {
+                        extra[[i]][[j]] <- innerReturn$extra
+                        imp[[j]][,i] <- innerReturn$imp
+                    } else {
+                        imp[[j]][,i] <- innerReturn
                     }
                     p$data[!r[, j], j] <- imp[[j]][, i]
                   } else if (is.passive(theMethod)) {
+                      ## TODO: It looks as if this can be folded into the formula processing
                     imp[[j]][, i] <- model.frame(as.formula(theMethod), p$data[!r[, j], ])  #RJ - FIXED passive imputation: as.formula()
                     p$data[!r[, j], j] <- imp[[j]][, i]
                   } else if (theMethod == "dummy") {
+                      stop("Oh my! dummy method still in use")
                     ## FEH
                     cat.columns <- p$data[, p$categories[j, 4]]
                     p$data[, (j:(j + p$categories[p$categories[j, 4], 2] - 1))] <- matrix((model.matrix(~cat.columns - 1)[,
@@ -189,7 +195,7 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
         if (printFlag)
             cat("\n")
     }
-    return(list(iteration = maxit, imp = imp, chainMean = chainMean, chainVar = chainVar))
+    return(list(iteration = maxit, imp = imp, chainMean = chainMean, chainVar = chainVar, extra=extra))
 }
 
 

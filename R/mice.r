@@ -19,10 +19,8 @@
 #'algorithm.
 #'
 #'The data may contain categorical variables that are used in a regressions on
-#'other variables. The algorithm creates dummy variables for the categories of
-#'these variables, and imputes these from the corresponding categorical
-#'variable. The extended model containing the dummy variables is called the
-#'padded model. Its structure is stored in the list component \code{pad}.
+#'other variables.  The program computes a model matrix with appropriate dummies
+#'on the fly and passes it to the low-level imputation methods.
 #'
 #'Built-in elementary imputation methods are:
 #'
@@ -127,6 +125,8 @@
 #'indicated by a vector of empty strings \code{''}.  The main value
 #'lies in the easy specification of interaction terms.  The user must
 #'ensure that the set of variables in the formula match those in \code{predictors}.
+#' Note the string should not have ~ at the front or terms to suppress intercepts;
+#' both will be added automatically.
 #'@param control A list with length \code{ncol{data}) with elements \code{NULL} or a
 #'list of control parameters for imputation of the corresponnding variable.
 #'@param defaultMethod A vector of three strings containing the default
@@ -390,6 +390,11 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     ## ------------------------------CHECK.data-------------------------------
 
     check.data <- function(setup, data, allow.na = FALSE, ...) {
+        # returns setup with following changes
+        # setup$data  holds the data with standardized contr.treatment
+        # setup$(predictorMatrix, method, visitSequence and post)
+        #      may all be updated to remove some degenerate data from consideration
+        #      TODO: check if any need to update form or control.  I think not. RB
 
         pred <- setup$predictorMatrix
         nvar <- setup$nvar
@@ -458,12 +463,59 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
             }
         }
 
+        isFactor <- apply(data, 2, is.factor)
+        sapply(which(isFactor), function(j) data[,j] <- C(data[,j], contr.treatment))
+        setup$data <- data
         setup$predictorMatrix <- pred
         setup$visitSequence <- vis
         setup$post <- post
         setup$meth <- meth
         return(setup)
     }
+
+    ## --------------------CHECK.form-------------------------------------
+    check.form <- function(setup){
+        # Verify consistency of formula and choices in the predictor matrix.
+        # Create formulae where they are missing and convert all to formula objects.
+        # The form that comes out of this is a list of formulae, which are present for all
+        # variables to impute.  In contrast, the input form is a vector of character data, many of which
+        # are like to be empty.
+        # The resulting formulae have no intercept.
+        form <- setup$form
+        predictorMatrix <- setup$predictorMatrix
+        varnames <- setup$varnames
+        newForm <- vector("list", setup$nvar)
+        for (j in unique(setup$visitSequence)) {
+            myformula <- form[j]
+            myvars <- varnames[predictorMatrix[j,] != 0]
+            if(!is.null(myformula) && nchar(myformula)>0) {
+                # user specified formula
+                myformula <- paste(myformula, "0", sep="+")
+                myformula <- as.formula(myformula)
+                xs <- as.list(attr(terms(myformula, data=setup$data), "variables"))
+                xs[1] <- NULL
+                xs <- sapply(xs, as.character)
+                # xs now has the names, as strings, of all variables in the formula
+                oops <- setdiff(xs, myvars)
+                if (length(oops)>0) {
+                    oops <- paste(oops, collapse=", ")
+                    stop(paste("Formula for variable", setup$varnames[j],"includes [",oops, "] which"
+                               "are not selected in the predictor matrix.", sep=" "))
+                }
+            } else {
+                # no user formula
+                # construct formula based on predictor matrix
+                myformula <- paste(myvars, collapse="+")
+                myformula <- paste("~", myformula, "+0", sep="")
+                myformula <- as.formula(myformula)
+            }
+            newForm[[j]] <- myformula
+        }
+        setup$form <- newForm
+        return(setup)
+    }
+
+
 
     ## Start with some preliminary calculations and error checks
     call <- match.call()
@@ -491,7 +543,8 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     if (!is.null(defaultImputationMethod))
         defaultMethod <- defaultImputationMethod
 
-    setup <- list(visitSequence = visitSequence, method = method,
+    setup <- list(data=data,
+                  visitSequence = visitSequence, method = method,
                   defaultMethod = defaultMethod,
                   predictorMatrix = predictorMatrix,
                   form = form, control=control,
@@ -500,15 +553,9 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     setup <- check.method(setup, data)
     setup <- check.predictorMatrix(setup)
     setup <- check.data(setup, data, ...)
+    setup <- check.form(setup)
 
-    ## Pad the imputation model with dummy variables for the factors
-    method <- setup$method
-    predictorMatrix <- setup$predictorMatrix
-    visitSequence <- setup$visitSequence
-    post <- setup$post
-    p <- padModel(data, method, predictorMatrix, visitSequence, form, post, nmis, nvar)
-    if (sum(duplicated(names(p$data))) > 0)
-        stop("Column names of padded data should be unique")
+    p <- setup  # mostly for historical reasons
 
     ## Initialize response matrix r, imputation array imp, as well as some other stuff
     r <- (!is.na(p$data))
@@ -520,7 +567,6 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     # As the Gibbs sampler iterates it holds the latest values along the chain.
     imp <- vector("list", ncol(p$data))
     if (m > 0) {
-
         ## Initializes the imputed values
         for (j in visitSequence) {
             imp[[j]] <- as.data.frame(matrix(NA, nrow = sum(!r[, j]), ncol = m))
@@ -552,8 +598,6 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     ## restore the original NA's in the data
     for (j in p$visitSequence) p$data[(!r[, j]), j] <- NA
 
-    ## delete data and imputations of automatic dummy variables
-    imp <- q$imp[1:nvar]
     extra <- q$extra
     names(imp) <- varnames
     names(extra) <- varnames
@@ -573,7 +617,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
                     seed = seed, iteration = q$iteration, lastSeedValue = .Random.seed, chainMean = q$chainMean,
                     chainVar = q$chainVar, loggedEvents = loggedEvents, extra=extra)
     if (diagnostics)
-        midsobj <- c(midsobj, list(pad = p))
+        midsobj <- c(midsobj, list(prepared = p))
     oldClass(midsobj) <- "mids"
     return(midsobj)
 }  # END OF MICE FUNCTION

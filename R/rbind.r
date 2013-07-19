@@ -104,7 +104,7 @@ rbind.mids <- function(x, y, ...) {
         chainMean = x$chainMean
         chainVar = x$chainVar
 
-        r <- list(data = data, nmis = nmis, imp = imp,
+        z <- list(data = data, nmis = nmis, imp = imp,
                   chainMean = chainMean, chainVar = chainVar, prepared = pprepared)
     }
 
@@ -149,32 +149,32 @@ rbind.mids <- function(x, y, ...) {
         chainMean = NA
         chainVar = NA
 
-        r <- list(data = data, m = m, nmis = nmis, imp = imp,
+        z <- list(data = data, m = m, nmis = nmis, imp = imp,
                   chainMean = chainMean, chainVar = chainVar, prepared = prepared)
     }
 
     # Call is a vector, with first argument the mice statement and second argument the call to cbind.mids.
     call <- match.call()
-    r$call <- c(x$call, call)
+    z$call <- c(x$call, call)
 
     # Copy data from x
-    r$m <- x$m
-    r$iteration <- x$iteration
-    r$control <- x$control
-    r$method <- x$method
-    r$form <- x$form
-    r$extra <- x$extra
-    r$post <- x$post
-    r$predictorMatrix <- x$predictorMatrix
-    r$visitSequence <- x$visitSequence
-    r$seed <- x$seed
-    r$lastSeedvalue <- x$lastSeedvalue
-    r$iteration <- x$iteration
+    z$m <- x$m
+    z$iteration <- x$iteration
+    z$control <- x$control
+    z$method <- x$method
+    z$form <- x$form
+    z$extra <- x$extra
+    z$post <- x$post
+    z$predictorMatrix <- x$predictorMatrix
+    z$visitSequence <- x$visitSequence
+    z$seed <- x$seed
+    z$lastSeedvalue <- x$lastSeedvalue
+    z$iteration <- x$iteration
 
     # It would probably be better to combine the x and y loggedEvents if y is mids.  RB
-    r$loggedEvents <- x$loggedEvents
+    z$loggedEvents <- x$loggedEvents
 
 
-    oldClass(x) <- "mids"
-    return(x)
+    oldClass(z) <- "mids"
+    return(z)
 }

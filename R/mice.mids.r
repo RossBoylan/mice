@@ -130,7 +130,6 @@ mice.mids <- function(obj, maxit=1, diagnostics = TRUE, printFlag = TRUE, ...)
                     lastSeedValue = .Random.seed,
                     chainMean = chainMean, chainVar = chainVar,
                     extra = q$extra,
-                    ## TODO: loggedEvents is not part of the definition of mids.  RB
                     loggedEvents = loggedEvents
                     )
     if (diagnostics) midsobj <- c(midsobj, list(prepared = prepared))

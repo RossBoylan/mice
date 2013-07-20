@@ -31,6 +31,21 @@
 #'    \item{\code{seed}:}{The seed value of the solution.}
 #'    \item{\code{iteration}:}{Last Gibbs sampling iteration number.}
 #'    \item{\code{lastSeedValue}:}{The most recent seed value.}
+#'    \item{\code{loggedEvents}:}{A data.frame with six columns containing a record of
+#'automatic removal actions. It is \code{NULL} is no action was made.  At
+#'initialization the program does the following three actions:
+#'1. A variable that contains missing values, that is not imputed and that is used as a
+#'predictor is removed, 2. a constant variable is removed, and 3. a collinear
+#'variable is removed. During iteration, the program does the following
+#'actions: 1. one or more variables that are linearly dependent are removed
+#'(for categorical data, a 'variable' corresponds to a dummy variable), and 2.
+#'proportional odds regression imputation that does not converge and is
+#'replaced by \code{polyreg}. Column \code{it} is the iteration number at which
+#'the record was added, \code{im} is the imputation number, \code{co} is the
+#'column number in the data, \code{dep} is the name of the name of the
+#'dependent variable, \code{meth} is the imputation method used, and \code{out}
+#'is a (possibly long) character vector with the names of the altered or
+#'removed predictors.}
 #'    \item{\code{extra}:}{A list of lists of extra state or history.  The outer list is indexed
 #' by imputed dataset; the inner list by variable.  The contents of the inner list have types
 #' given by the specific imputation method of that variable.  Note the indexing scheme differs from that
@@ -51,25 +66,15 @@
 #' The list also includes
 #' \code{nmis} (number missing in each column of data), \code{nvar} (number of columns of data),
 #' \code{varnames} (variable names for the data).}
-#'\item{\code{loggedEvents}:}{A matrix with six columns containing a record of
-#'automatic removal actions. It is \code{NULL} is no action was made.  At
-#'initialization the program does the following three actions:
-#'1. A variable that contains missing values, that is not imputed and that is used as a
-#'predictor is removed, 2. a constant variable is removed, and 3. a collinear
-#'variable is removed. During iteration, the program does the following
-#'actions: 1. one or more variables that are linearly dependent are removed
-#'(for categorical data, a 'variable' corresponds to a dummy variable), and 2.
-#'proportional odds regression imputation that does not converge and is
-#'replaced by \code{polyreg}. Column \code{it} is the iteration number at which
-#'the record was added, \code{im} is the imputation number, \code{co} is the
-#'column number in the data, \code{dep} is the name of the name of the
-#'dependent variable, \code{meth} is the imputation method used, and \code{out}
-#'is a (possibly long) character vector with the names of the altered or
-#'removed predictors.}
+#'\item{\code{loggedEvents}:}{As above.}
 #'}
 #'
 #' @note Many of the functions of the \code{mice} package do not use the S4 class definitions,
 #' and instead rely on the S3 list equivalent \code{oldClass(obj) <- "mids"}.
+#'
+#' The duplication of information between the \code{mids} object and its \code{prepared} member is undesirable.
+#' While there may be some differences between the two, they are much less than with the padded (with dummies)
+#' data that was the historical basis of this design.
 #'
 #'@name mids-class
 #'@rdname mids-class
@@ -98,6 +103,7 @@ setClass("mids",
              seed      = "numeric",
              iteration = "integer",
              lastSeedValue = "integer",
+             loggedEvents = "data.frame",
              extra     = "list",
              chainMean = "array",
              chainVar  = "array",

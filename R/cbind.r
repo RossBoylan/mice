@@ -99,6 +99,8 @@ cbind.mids <- function(x, y, ...) {
     # KO 08/09.
 
     call <- match.call()
+    prepared <- x$prepared
+
     if (!is.mids(y))
         y <- cbind.data.frame(y, ...)
 
@@ -118,6 +120,7 @@ cbind.mids <- function(x, y, ...) {
 
         # The data in x (x$data) and y are combined together.
         data <- cbind(x$data, y)
+        prepared$data <- cbind(prepared$data, y)
 
         # count the number of missing data in y
         nmis <- c(x$nmis, colSums(is.na(y)))
@@ -132,10 +135,15 @@ cbind.mids <- function(x, y, ...) {
         imp <- c(x$imp, imp)
         names(imp) <- varnames
 
-        # The imputation method for (columns in) y will be set to ''.
-        method <- c(x$method, rep("", ncol(y)))
+        # The imputation method for (columns in) y will be set to  an appropriate missing.
+        ncy <- ncol(y)
+        method <- c(x$method, rep(NA_character, ncy))
         names(method) <- c(names(x$method), colnames(y))
-
+        form <- c(x$form, rep(NA_character, ncy))
+        names(form) <- c(names(x$form), colnames(y))
+        control <- lapply(x$control, function(cntl) c(cntl, vector("list", ncy)))
+        names(control) <- c(names(x$control), colnames(y))
+        # this leaves the NULL members of control unlabelled.
         # The variable(s) in y are included in the predictorMatrix.  y is not used as predictor as well as not imputed.
         predictorMatrix <- rbind(x$predictorMatrix, matrix(0, ncol = ncol(x$predictorMatrix), nrow = ncol(y)))
         predictorMatrix <- cbind(predictorMatrix, matrix(0, ncol = ncol(y), nrow = nrow(x$predictorMatrix) + ncol(y)))
@@ -145,22 +153,19 @@ cbind.mids <- function(x, y, ...) {
         visitSequence <- x$visitSequence
 
         # The post vector for (columns in) y will be set to ''.
-        post <- c(x$post, rep("", ncol(y)))
+        post <- c(x$post, rep(NA_character, ncy))
         names(post) <- c(names(x$post), colnames(y))
+        extra <- c(x$extra, vector("list", ncy))
+        names(extra) <- c(names(x$extra), colnames(y))
 
         # chainMean and chainVar are taken as in mids object x.
         # which doesn't really even have the correct dimension--RB
         chainMean = x$chainMean
         chainVar = x$chainVar
 
-        # padModel for the data to be binded with x.  Remark, if a column of y is categorical this is ignored in padModel since
-        # that column is not used as predictor for another column.
-
-        pad <- padModel(data, method, predictorMatrix, visitSequence, post, nmis, nvar = ncol(data))
-
         z <- list(data = data, nmis = nmis, imp = imp, method = method, predictorMatrix = predictorMatrix,
-                  visitSequence = visitSequence, post = post,
-                  chainMean = chainMean, chainVar = chainVar)
+                  visitSequence = visitSequence, form = form, control = control, post = post,
+                  chainMean = chainMean, chainVar = chainVar, preparead = prepared)
     }
 
     if (is.mids(y)) {
@@ -172,12 +177,15 @@ cbind.mids <- function(x, y, ...) {
 
         # The data in x$data and y$data are combined together.
         data <- cbind(x$data, y$data)
+        prepared$data <- cbind(prepared$data, y$prepared$data)
+
         varnames <- c(dimnames(x$data)[[2]], dimnames(y$data)[[2]])
 
         nmis <- c(x$nmis, y$nmis)
         imp <- c(x$imp, y$imp)
         method <- c(x$method, y$method)
-
+        form <- c(x$form, y$form)
+        control <- c(x$control, y$control)
         # The predictorMatrices of x and y are combined with zero matrices on the off diagonal blocks.
         predictorMatrix <- rbind(x$predictorMatrix, matrix(0, ncol = ncol(x$predictorMatrix), nrow = nrow(y$predictorMatrix)))
         predictorMatrix <- cbind(predictorMatrix, rbind(matrix(0, ncol = ncol(y$predictorMatrix), nrow = nrow(x$predictorMatrix)),
@@ -188,21 +196,7 @@ cbind.mids <- function(x, y, ...) {
         visitSequence <- c(x$visitSequence, y$visitSequence + max(x$visitSequence))
 
         post <- c(x$post, y$post)
-
-        # The padModel is defined by just combining both padModels as defined above.
-        padData <- cbind(x$pad$data, y$pad$data)
-        varnamesPad <- c(dimnames(x$pad$predictorMatrix)[[1]], dimnames(y$pad$predictorMatrix)[[1]])
-        padPredictorMatrix <- rbind(x$pad$predictorMatrix, matrix(0, ncol = ncol(x$pad$predictorMatrix), nrow = nrow(y$pad$predictorMatrix)))
-        padPredictorMatrix <- cbind(padPredictorMatrix, rbind(matrix(0, ncol = ncol(y$pad$predictorMatrix), nrow = nrow(x$pad$predictorMatrix)),
-                                                              y$pad$predictorMatrix))
-        dimnames(padPredictorMatrix) <- list(varnamesPad, varnamesPad)
-
-        padMethod <- c(x$pad$method, y$pad$method)
-        padVisitSequence <- c(x$pad$visitSequence, y$pad$visitSequence + max(x$pad$visitSequence))
-        padPost <- c(x$pad$post, y$pad$post)
-        padCategories <- rbind(x$pad$categories, y$pad$categories)
-        pad <- list(data = padData, predictorMatrix = padPredictorMatrix, method = padMethod, visitSequence = padVisitSequence,
-                    post = padPost, categories = padCategories)
+        extra <- mapply(c, x$extra, y$extra)
 
         # the chainMean and chainVar vectors for x and y are combined.
         chainMean <- array(data = NA, dim = c(dim(x$chainMean)[1] + dim(y$chainMean)[1], iteration, m), dimnames = list(c(dimnames(x$chainMean)[[1]],
@@ -218,8 +212,8 @@ cbind.mids <- function(x, y, ...) {
             chainVar[(dim(x$chainVar)[1] + 1):dim(chainVar)[1], , ] <- y$chainVar[, 1:iteration, ] else chainVar[(dim(x$chainVar)[1] + 1):dim(chainVar)[1], 1:dim(y$chainVar)[2], ] <- y$chainVar
 
         z <- list(data = data, nmis = nmis, imp = imp, method = method, predictorMatrix = predictorMatrix,
-                  visitSequence = visitSequence, post = post,
-                  chainMean = chainMean, chainVar = chainVar)
+                  visitSequence = visitSequence, form = form, control=control, post = post,
+                  chainMean = chainMean, chainVar = chainVar, prepared = prepared)
     }
 
     # Call is a vector, with first argument the mice statement and second argument the call to cbind.mids.

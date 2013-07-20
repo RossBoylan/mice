@@ -232,11 +232,18 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
     # Copyright (c) 2010 TNO Quality of Life, Leiden
     #
 
-    # Note that the variables state and loggedEvents below are written to be subroutines,
+    # Note that the variables state and loggedEvents below are written to by subroutines,
     # even though they do not appear in function call or return values.
     # The global variable .Random.seed also gets updated by subroutines.
     # grep assign *.r to find where those assignments happen.
 
+    # state is a list with
+    #   it   iteration number of mice Gibbs sampler
+    #   im   imputation number in the sense of distinct imputed datesets for analysis
+    #   co   variable number, focus of imputation
+    #   dep  variable name <string>
+    #   meth method used to impute <string>
+    #   log  log of events
     # ------------------------------CHECK.VISITSEQUENCE------------------------
     check.visitSequence <- function(setup) {
         nmis <- setup$nmis
@@ -502,6 +509,12 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
 
     ## Initialize response matrix r, imputation array imp, as well as some other stuff
     r <- (!is.na(p$data))
+    # imp is a list with one element for each column in the augmented data.
+    # However, only the entries corresponding to original variables to impute are not empty.
+    # The individual elements are matrices with rows giving imputed data values
+    # and each column corresponding to one imputed data set for final analysis.
+    # The matrices do not include the observed values.
+    # As the Gibbs sampler iterates it holds the latest values along the chain.
     imp <- vector("list", ncol(p$data))
     if (m > 0) {
 

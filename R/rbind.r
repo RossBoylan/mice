@@ -117,7 +117,7 @@ rbind.mids <- function(x, y, ...) {
             stop("The number of imputations differ between x and y.\n")
 
         if (!identical(x$control == y$control))
-            warnings("Control values are not equal in x and y; will use values from x.\n")
+            warning("Control values are not equal in x and y; will use values from x.\n")
         if (!all(x$method == y$method))
             warning("Methods vector is not equal in x and y; will use values from x.\n")
         if (!all(x$predictorMatrix == y$predictorMatrix))

@@ -88,7 +88,7 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       type <- type[keep]
                       innerReturn <- do.call(f, args = list(y, ry, x, type, p$control[[j]], extra[[i]][[jj]], ...))
                     }
-                    if (inherits(innerReturn, "innerReturn") {
+                    if (inherits(innerReturn, "innerReturn")) {
                         extra[[i]][[j]] <- innerReturn$extra
                         imp[[j]][,i] <- innerReturn$imp
                     } else {

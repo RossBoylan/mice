@@ -70,7 +70,7 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       f <- paste("mice.impute", theMethod, sep = ".")
                       keep <- remove.lindep(x, y, ry, ...)
                       x <- x[, keep, drop = FALSE]
-                      innerReturn <- do.call(f, args = list(y, ry, x, p$control[[j]], extra[[i]][[j]], ...))
+                      innerReturn <- do.call(f, args = list(y, ry, x, control=p$control[[j]], extra=extra[[i]][[j]], ...))
                     } else {
                       # for a multilevel imputation method
                       predictors <- p$predictorMatrix[j, ] != 0
@@ -86,7 +86,7 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       keep <- remove.lindep(x, y, ry, ...)
                       x <- x[, keep, drop = FALSE]
                       type <- type[keep]
-                      innerReturn <- do.call(f, args = list(y, ry, x, type, p$control[[j]], extra[[i]][[jj]], ...))
+                      innerReturn <- do.call(f, args = list(y, ry, x, type, control=p$control[[j]], extra=extra[[i]][[j]], ...))
                     }
                     if (inherits(innerReturn, "innerReturn")) {
                         extra[[i]][[j]] <- innerReturn$extra

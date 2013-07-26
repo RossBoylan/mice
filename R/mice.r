@@ -600,6 +600,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
 
     extra <- q$extra
     names(imp) <- varnames
+    extra <- lapply(extra, function(anextra) {names(anextra) <- varnames; anextra})
     names(extra) <- varnames
     names(method) <- varnames
     names(form) <- varnames

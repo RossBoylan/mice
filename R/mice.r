@@ -499,7 +499,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
                 oops <- setdiff(xs, myvars)
                 if (length(oops)>0) {
                     oops <- paste(oops, collapse=", ")
-                    stop(paste("Formula for variable", setup$varnames[j],"includes [",oops, "] which"
+                    stop(paste("Formula for variable", setup$varnames[j],"includes [",oops, "] which",
                                "are not selected in the predictor matrix.", sep=" "))
                 }
             } else {

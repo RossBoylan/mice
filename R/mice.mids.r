@@ -16,7 +16,8 @@
 #'\code{mids} object.
 #'
 #'@param obj An object of class \code{mids}, typically produces by a previous
-#'call to \code{mice()} or \code{mice.mids()}
+#'call to \code{mice()} or \code{mice.mids()}.  That previous call must have run
+#' at least one iteration.
 #'@param maxit The number of additional Gibbs sampling iterations.
 #'@param diagnostics A Boolean flag. If \code{TRUE}, diagnostic information
 #'will be appended to the value of the function. If \code{FALSE}, only the
@@ -43,63 +44,57 @@
 #'imp <- mice(nhanes,maxit=2)
 #'
 #'# for example:
-#'# 
+#'#
 #'# > imp$imp$bmi[1,]
-#'#      1    2    3    4    5 
+#'#      1    2    3    4    5
 #'# 1 30.1 35.3 33.2 35.3 27.5
 #'# > imp2$imp$bmi[1,]
-#'#      1    2    3    4    5 
+#'#      1    2    3    4    5
 #'# 1 30.1 35.3 33.2 35.3 27.5
-#'# 
+#'#
 #'
 #'@export
 mice.mids <- function(obj, maxit=1, diagnostics = TRUE, printFlag = TRUE, ...)
 {
-    # MICE.MIDS - 
-    # MICE algorithm that takes mids object as input, iterates maxit 
+    # MICE.MIDS -
+    # MICE algorithm that takes mids object as input, iterates maxit
     # iteration and produces another mids object as output.
     if (!is.mids(obj)) stop("Object should be of type mids.")
     if (maxit < 1) return(obj)
-    
+
     call <- match.call()
     nvar <- ncol(obj$data)
     sumIt <- obj$iteration + maxit
     varnames <- dimnames(obj$data)[[2]]
-    
+
     from <- obj$iteration + 1
     to <- from + maxit - 1
-    
-    loggedEvents <- obj$loggedEvents   
+
+    loggedEvents <- obj$loggedEvents
     state <- list(it = 0, im = 0, co = 0, dep = "", meth = "",
                   log = !is.null(loggedEvents))
     if (is.null(loggedEvents))
         loggedEvents <- data.frame(it=0, im=0, co=0, dep="", meth="", out="")
-    
-    ## make a suitable comment here
-    if (is.null(obj$pad)) p <- padModel(obj$data,
-                                        obj$method,
-                                        obj$predictorMatrix,
-                                        obj$visitSequence,
-                                        obj$post,
-                                        obj$nmis,
-                                        nvar)
-    else p <- obj$pad
+
+    p <- obj$prepared
+    # TODO: fix next problem.
+    if (is.null(p))
+        stop("Input mids must have been run once.\n")
     r <- (!is.na(p$data))
     imp <- vector("list", ncol(p$data))
     for(j in obj$visitSequence) imp[[j]] <- obj$imp[[j]]
     assign(".Random.seed", obj$lastSeedValue, pos=1) ##pm 04/02
-    
+
     ## OK. Iterate.
     q <- sampler(p, obj$data, obj$m, imp, r, obj$visitSequence, c(from, to), printFlag, ...)
-    
+
     ## restore the original NA's in the data
     for(j in p$visitSequence) p$data[(!r[,j]),j] <- NA
-    
-    ##   delete data and imputations of automatic dummy variables
-    data <- p$data[,1:nvar]
-    imp <- q$imp[1:nvar]
+
+    data <- p$data
+    imp <- q$imp
     names(imp) <- varnames
-    
+
     ## combine with previous chainMean and chainVar
     nvis <- length(obj$visitSequence)
     vnames <- varnames[obj$visitSequence]
@@ -113,27 +108,31 @@ mice.mids <- function(obj, maxit=1, diagnostics = TRUE, printFlag = TRUE, ...)
         } else {
             chainMean[j,1:obj$iteration,] <- obj$chainMean[j,,]
             chainVar[j,1:obj$iteration,] <- obj$chainVar[j,,]
-            chainMean[j,from:to,] <- q$chainMean[j,,]   
+            chainMean[j,from:to,] <- q$chainMean[j,,]
             chainVar[j,from:to,] <- q$chainVar[j,,]
         }
     }
-    
+
     if (!state$log) loggedEvents <- NULL
     if (state$log) row.names(loggedEvents) <- 1:nrow(loggedEvents)
-    
-    ## save, and return  
-    midsobj <- list(call = call, data = as.data.frame(data), 
-                    m = obj$m, nmis = obj$nmis, imp = imp, 
+
+    ## save, and return
+    midsobj <- list(call = call, data = as.data.frame(data),
+                    m = obj$m, nmis = obj$nmis, imp = imp,
                     method = obj$method,
-                    predictorMatrix = obj$predictorMatrix, 
-                    visitSequence = obj$visitSequence, 
+                    predictorMatrix = obj$predictorMatrix,
+                    visitSequence = obj$visitSequence,
+                    form = obj$form,
+                    control = obj$control,
                     post = obj$post,
-                    seed = obj$seed, 
-                    iteration = sumIt, 
+                    seed = obj$seed,
+                    iteration = sumIt,
                     lastSeedValue = .Random.seed,
                     chainMean = chainMean, chainVar = chainVar,
-                    loggedEvents = loggedEvents) 
-    if (diagnostics) midsobj <- c(midsobj, list(pad = p))
+                    extra = q$extra,
+                    loggedEvents = loggedEvents
+                    )
+    if (diagnostics) midsobj <- c(midsobj, list(prepared = prepared))
     oldClass(midsobj) <- "mids"
     return(midsobj)
 } # END OF MICE.MIDS FUNCTION

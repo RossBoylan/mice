@@ -127,7 +127,7 @@
 #'ensure that the set of variables in the formula match those in \code{predictors}.
 #' Note the string should not have ~ at the front or terms to suppress intercepts;
 #' both will be added automatically.
-#'@param control A list with length \code{ncol{data}) with elements \code{NULL} or a
+#'@param control A list with length \code{ncol(data)} with elements \code{NULL} or a
 #'list of control parameters for imputation of the corresponnding variable.
 #'@param defaultMethod A vector of three strings containing the default
 #'imputation methods for numerical columns, factor columns with 2 levels, and

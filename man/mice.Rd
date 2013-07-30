@@ -73,7 +73,7 @@
   the front or terms to suppress intercepts; both will be
   added automatically.}
 
-  \item{control}{A list with length \code{ncol{data}) with
+  \item{control}{A list with length \code{ncol(data)} with
   elements \code{NULL} or a list of control parameters for
   imputation of the corresponnding variable.}
 

@@ -9,7 +9,7 @@
 #' the data and imputations from both runs, and either combines other information
 #' or copies it from the first argument.
 #'
-#' If \code{y) is not a \code{mids} object, \code{x$data}, \code{y} and the optional arguments
+#' If \code{y} is not a \code{mids} object, \code{x$data}, \code{y} and the optional arguments
 #' \code{...} are stacked with \code{\link{rbind}} and treated as the new data.  Imputations
 #' will be missing for all rows except those corresponding to \code{x}.
 #'@param x A \code{mids} object.

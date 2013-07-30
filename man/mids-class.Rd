@@ -43,7 +43,7 @@
   the predictor.  An empty string \code{''} means do
   nothing. The main value lies in the easy specification of
   interaction terms.} \item{\code{control}:}{A list with
-  length \code{ncol{data}) with elements \code{NULL} or a
+  length \code{ncol(data)} with elements \code{NULL} or a
   list of control parameters for imputation of the
   corresponnding variable.} \item{\code{post}:}{A vector of
   strings of length \code{ncol(data)} with commands for

@@ -22,7 +22,7 @@
 #'@param y A \code{mids} object or a \code{data.frame}, \code{matrix},
 #'\code{factor} or \code{vector}.
 #'@param \dots Additional \code{data.frame}, \code{matrix}, \code{vector} or \code{factor}.
-#'These can be given as named arguments and are combined with \code{y} using \code{\link{cbind}).
+#'These can be given as named arguments and are combined with \code{y} using \code{\link{cbind}}.
 #'@return An S3 object of class \code{mids}
 #'Component \code{call} is a vector, with first argument the \code{mice()} statement
 #'that created \code{x} and second argument the call to \code{cbind.mids()}.
@@ -55,7 +55,7 @@
 #'If \code{y$chainVar} does not exist this element equals \code{x$chainVar}.
 #' Values for \code{m}, \code{seed}, \code{lastSeedValue}, \code{iteration} and \code{loggedEvents}
 #' are copied from \code{x}.
-#' \code(prepared} has \code{$data} suitably merged and the rest copied from \code{x}.
+#' \code{prepared} has \code{$data} suitably merged and the rest copied from \code{x}.
 #'@author Karin Groothuis-Oudshoorn, Stef van Buuren, 2009
 #'@seealso \code{\link{rbind.mids}}, \code{\link{ibind}}, \code{\link[=mids-class]{mids}}
 #'@keywords manip

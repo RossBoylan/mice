@@ -13,7 +13,7 @@
   \item{\dots}{Additional \code{data.frame}, \code{matrix},
   \code{vector} or \code{factor}. These can be given as
   named arguments and are combined with \code{y} using
-  \code{\link{cbind}).}
+  \code{\link{cbind}}.}
 }
 \value{
   An S3 object of class \code{mids} Component \code{call}
@@ -56,7 +56,7 @@
   exist this element equals \code{x$chainVar}. Values for
   \code{m}, \code{seed}, \code{lastSeedValue},
   \code{iteration} and \code{loggedEvents} are copied from
-  \code{x}. \code(prepared} has \code{$data} suitably
+  \code{x}. \code{prepared} has \code{$data} suitably
   merged and the rest copied from \code{x}.
 }
 \description{

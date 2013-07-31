@@ -130,16 +130,16 @@ cbind.mids <- function(x, y, ...) {
         imp <- vector("list", ncol(y))
         for (j in 1:ncol(y)) {
             imp[[j]] <- as.data.frame(matrix(NA, nrow = sum(!r[, j]), ncol = x$m))
-            dimnames(imp[[j]]) <- list(row.names(y)[r[, j] == FALSE], 1:m)
+            dimnames(imp[[j]]) <- list(row.names(y)[r[, j] == FALSE], 1:x$m)
         }
         imp <- c(x$imp, imp)
         names(imp) <- varnames
 
         # The imputation method for (columns in) y will be set to  an appropriate missing.
         ncy <- ncol(y)
-        method <- c(x$method, rep(NA_character, ncy))
+        method <- c(x$method, rep(NA_character_, ncy))
         names(method) <- c(names(x$method), colnames(y))
-        form <- c(x$form, rep(NA_character, ncy))
+        form <- c(x$form, rep(NA_character_, ncy))
         names(form) <- c(names(x$form), colnames(y))
         control <- lapply(x$control, function(cntl) c(cntl, vector("list", ncy)))
         names(control) <- c(names(x$control), colnames(y))
@@ -153,7 +153,7 @@ cbind.mids <- function(x, y, ...) {
         visitSequence <- x$visitSequence
 
         # The post vector for (columns in) y will be set to ''.
-        post <- c(x$post, rep(NA_character, ncy))
+        post <- c(x$post, rep(NA_character_, ncy))
         names(post) <- c(names(x$post), colnames(y))
         extra <- c(x$extra, vector("list", ncy))
         names(extra) <- c(names(x$extra), colnames(y))

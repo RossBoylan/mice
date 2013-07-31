@@ -105,7 +105,7 @@ rbind.mids <- function(x, y, ...) {
         chainVar = x$chainVar
 
         z <- list(data = data, nmis = nmis, imp = imp,
-                  chainMean = chainMean, chainVar = chainVar, prepared = pprepared)
+                  chainMean = chainMean, chainVar = chainVar, prepared = prepared)
     }
 
     if (is.mids(y)) {

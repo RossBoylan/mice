@@ -22,6 +22,12 @@
   then the combination of both objects contains
   \code{m(x)+m(y)} imputations.
 }
+\note{
+  Although the resulting object has \code{$prepared}, it is
+  just a copy of \code{x$prepared}, not a meaningful
+  combination.  Use the values in the \code{mids} object
+  when possible.
+}
 \author{
   Karin Groothuis-Oudshoorn, Stef van Buuren, 2009
 }

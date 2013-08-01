@@ -127,7 +127,7 @@
 #'ensure that the set of variables in the formula match those in \code{predictors}.
 #' Note the string should not have ~ at the front or terms to suppress intercepts;
 #' both will be added automatically.
-#'@param control A list with length \code{ncol{data}) with elements \code{NULL} or a
+#'@param control A list with length \code{ncol(data)} with elements \code{NULL} or a
 #'list of control parameters for imputation of the corresponnding variable.
 #'@param defaultMethod A vector of three strings containing the default
 #'imputation methods for numerical columns, factor columns with 2 levels, and
@@ -195,11 +195,13 @@
 #'multiple imputation strategies for the statistical analysis of incomplete
 #'data sets.} Dissertation. Rotterdam: Erasmus University.
 #'@keywords iteration
-#'@import MASS nnet
+#'@import MASS nnet plyr
 #'@importFrom stats lm glm
 #'@importFrom utils packageDescription
 #'@importFrom graphics plot
 #'@importFrom rpart rpart rpart.control
+#'@importFrom HybridMC hybridMC
+#'@importFrom truncnorm rtruncnorm
 #'@examples
 #'
 #'
@@ -499,7 +501,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
                 oops <- setdiff(xs, myvars)
                 if (length(oops)>0) {
                     oops <- paste(oops, collapse=", ")
-                    stop(paste("Formula for variable", setup$varnames[j],"includes [",oops, "] which"
+                    stop(paste("Formula for variable", setup$varnames[j],"includes [",oops, "] which",
                                "are not selected in the predictor matrix.", sep=" "))
                 }
             } else {
@@ -600,7 +602,7 @@ mice <- function(data, m = 5, method = vector("character", length = ncol(data)),
 
     extra <- q$extra
     names(imp) <- varnames
-    names(extra) <- varnames
+    extra <- lapply(extra, function(anextra) {names(anextra) <- varnames; anextra})
     names(method) <- varnames
     names(form) <- varnames
     names(post) <- varnames

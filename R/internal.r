@@ -15,6 +15,13 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
     # have entries that are initially NULL.  Specific imputation methods will provide an appropriately typed object
     # that they pass back, which in turn are passed into the imputation method on the next Gibbs step.
     extra <- lapply(seq(m), function(i) vector("list", p$nvar))
+
+    ## mminfo holds a list whose elements are either NULL
+    ## or the return values from mmexpand; see that function below for details.
+    ## mminfo[[j]] gives information on the model matrix for outcome j.
+    ## mminfo is only used by 2 level predictors
+    mminfo <- vector("list", p$nvar)
+
     if (maxit > 0)
         chainVar <- chainMean <- array(0, dim = c(length(visitSequence), maxit, m), dimnames = list(dimnames(data)[[2]][visitSequence],
             1:maxit, paste("Chain", 1:m))) else chainVar <- chainMean <- NULL
@@ -70,7 +77,7 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       f <- paste("mice.impute", theMethod, sep = ".")
                       keep <- remove.lindep(x, y, ry, ...)
                       x <- x[, keep, drop = FALSE]
-                      innerReturn <- do.call(f, args = list(y, ry, x, p$control[[j]], extra[[i]][[j]], ...))
+                      innerReturn <- do.call(f, args = list(y, ry, x, control=p$control[[j]], extra=extra[[i]][[j]], ...))
                     } else {
                       # for a multilevel imputation method
                       predictors <- p$predictorMatrix[j, ] != 0
@@ -78,7 +85,11 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       x <- model.matrix(p$form[[j]], p$data)
                       y <- p$data[, j]
                       ry <- r[, j]
-                      type <- p$predictorMatrix[j, predictors]
+                      minfo <- mminfo[[j]]
+                      # lazy initialization: compute first time it needed
+                      if (is.null(minfo))
+                          minfo <- mminfo[[j]] <- mmexpand(p$predictorMatrix[j,], x, p$data, p$form[[j]])
+                      type <- minfo$mmtype
                       nam <- vname
                       if (k == 1)
                         check.df(x, y, ry, ...)  # added 31/10/2012, throw warning for n(obs) < p case
@@ -86,9 +97,9 @@ sampler <- function(p, data, m, imp, r, visitSequence, fromto, printFlag, ...)
                       keep <- remove.lindep(x, y, ry, ...)
                       x <- x[, keep, drop = FALSE]
                       type <- type[keep]
-                      innerReturn <- do.call(f, args = list(y, ry, x, type, p$control[[j]], extra[[i]][[jj]], ...))
+                      innerReturn <- do.call(f, args = list(y, ry, x, type, control=p$control[[j]], extra=extra[[i]][[j]], ...))
                     }
-                    if (inherits(innerReturn, "innerReturn") {
+                    if (inherits(innerReturn, "innerReturn")) {
                         extra[[i]][[j]] <- innerReturn$extra
                         imp[[j]][,i] <- innerReturn$imp
                     } else {
@@ -215,3 +226,44 @@ updateLog <- function(out = NULL, meth = NULL, frame = 2) {
     assign("loggedEvents", rec, pos = parent.frame(frame), inherits = TRUE)
     return()
 }
+
+# Expand type information on original data to match the model matrix
+# The "imputand" is the variable to be imputed.
+# predictorType = row from the predictorMatrix
+# mm = model matrix of predictors of the imputand
+# form = formula for the imputand
+# data = original data
+#
+# returns a list
+#   mmtype = predictorType expanded to match model matrix
+#       mmtype[i] gives the predictor type of modelMatrix[,i]
+#   mmcolnames = column names of the model matrix
+#   iMMtoDF is such that data[,iMMtoDF[i]] contributed to mm[,i] (DF for data frame)
+# Note that the return values are specific to this particular imputand.
+mmexpand <- function(predictorType, mm, data, form) {
+    mmi <- reverse.map(mm, form, data)
+    return(list(mmtype=predictorType[mmi], mmcolnames = colnames(mm), iMMtoDF = mmi))
+}
+
+# return a vector v such that data[,v[i]] contributed to mm[,i]
+# mm = model matrix created by
+# form = formula
+# data = data 
+# If multiple columns of the original data contributed to a mm column,
+# simply use the first such column.
+reverse.map <- function(mm, form, data){
+    tt <- terms(form, data=data)
+    ttf <- attr(tt, "factors")
+    mmi <- attr(mm, "assign")
+    # this depends on assign using same order as columns of factors
+    # entries in mmi that are 0 (the intercept) are silently dropped
+    ttf2 <- ttf[,mmi]
+    # take the first row that contributes
+    r <- apply(ttf2, 2, function(is) rownames(ttf)[is > 0][1])
+    v <- match(r, colnames(data))
+    # assume if there is an intercept it will be at start
+    if (0 %in% mmi)
+        v <- c(NA, v)
+    return(v)
+}
+

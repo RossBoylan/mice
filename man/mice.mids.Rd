@@ -8,7 +8,8 @@
 \arguments{
   \item{obj}{An object of class \code{mids}, typically
   produces by a previous call to \code{mice()} or
-  \code{mice.mids()}}
+  \code{mice.mids()}.  That previous call must have run at
+  least one iteration.}
 
   \item{maxit}{The number of additional Gibbs sampling
   iterations.}

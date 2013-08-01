@@ -14,6 +14,12 @@
   Many of the functions of the \code{mice} package do not
   use the S4 class definitions, and instead rely on the S3
   list equivalent \code{oldClass(obj) <- "mids"}.
+
+  The duplication of information between the \code{mids}
+  object and its \code{prepared} member is undesirable.
+  While there may be some differences between the two, they
+  are much less than with the padded (with dummies) data
+  that was the historical basis of this design.
 }
 \section{Slots}{
   \describe{ \item{\code{call}:}{The call that created the
@@ -30,34 +36,22 @@
   \item{\code{predictorMatrix}:}{A square matrix of size
   \code{ncol(data)} containing integers specifying the
   predictor set.} \item{\code{visitSequence}:}{The sequence
-  in which columns are visited.} \item{\code{post}:}{A
-  vector of strings of length \code{ncol(data)} with
-  commands for post-processing} \item{\code{seed}:}{The
-  seed value of the solution.}
-  \item{\code{iteration}:}{Last Gibbs sampling iteration
-  number.} \item{\code{lastSeedValue}:}{The most recent
-  seed value.} \item{\code{chainMean}:}{A list of \code{m}
-  components. Each component is a
-  \code{length(visitSequence)} by \code{maxit} matrix
-  containing the mean of the generated multiple
-  imputations. The array can be used for monitoring
-  convergence.  Note that observed data are not present in
-  this mean.} \item{\code{chainVar}:}{A list with similar
-  structure of \code{chainMean}, containing the covariances
-  of the imputed values.} \item{\code{pad}:}{A list
-  containing various settings of the padded imputation
-  model, i.e. the imputation model after creating dummy
-  variables. Normally, this list is only useful for error
-  checking. List members are \code{pad$data} (data padded
-  with columns for factors), \code{pad$predictorMatrix}
-  (predictor matrix for the padded data), \code{pad$method}
-  (imputation methods applied to the padded data), the
-  vector \code{pad$visitSequence} (the visit sequence
-  applied to the padded data), \code{pad$post}
-  (post-processing commands for padded data) and
-  \code{categories} (a matrix containing descriptive
-  information about the padding operation).}
-  \item{\code{loggedEvents}:}{A matrix with six columns
+  in which columns are visited.} \item{\code{form}:}{A
+  vector of strings with length \code{ncol(data)},
+  specifying formulae. Each string is parsed and executed
+  within the \code{sampler()} function to create terms for
+  the predictor.  An empty string \code{''} means do
+  nothing. The main value lies in the easy specification of
+  interaction terms.} \item{\code{control}:}{A list with
+  length \code{ncol(data)} with elements \code{NULL} or a
+  list of control parameters for imputation of the
+  corresponnding variable.} \item{\code{post}:}{A vector of
+  strings of length \code{ncol(data)} with commands for
+  post-processing} \item{\code{seed}:}{The seed value of
+  the solution.} \item{\code{iteration}:}{Last Gibbs
+  sampling iteration number.}
+  \item{\code{lastSeedValue}:}{The most recent seed value.}
+  \item{\code{loggedEvents}:}{A data.frame with six columns
   containing a record of automatic removal actions. It is
   \code{NULL} is no action was made.  At initialization the
   program does the following three actions: 1. A variable
@@ -76,7 +70,38 @@
   dependent variable, \code{meth} is the imputation method
   used, and \code{out} is a (possibly long) character
   vector with the names of the altered or removed
-  predictors.} }
+  predictors.} \item{\code{extra}:}{A list of lists of
+  extra state or history.  The outer list is indexed by
+  imputed dataset; the inner list by variable.  The
+  contents of the inner list have types given by the
+  specific imputation method of that variable.  Note the
+  indexing scheme differs from that for imp, which can rely
+  on homogenous types across imputation methods.}
+  \item{\code{chainMean}:}{A list of \code{m} components.
+  Each component is a \code{length(visitSequence)} by
+  \code{maxit} matrix containing the mean of the generated
+  multiple imputations. The array can be used for
+  monitoring convergence.  Note that observed data are not
+  present in this mean.} \item{\code{chainVar}:}{A list
+  with similar structure of \code{chainMean}, containing
+  the covariances of the imputed values.}
+  \item{\code{prepared}:}{A list containing the input
+  options and data after various cleaning and data
+  checking. That processing may eliminate some degenerate
+  variables from consideration and change the coding of
+  factors.  Normally, this list is only useful for error
+  checking and is only returned if \code{diagnostics} were
+  requested. List members include most of the arguments to
+  \code{\link{mice}}: \code{data}, \code{visitSequence},
+  \code{method}, \code{defaultMethod},
+  \code{predictorMatrix}, \code{form}, \code{control}, and
+  \code{post}.  Note that \code{form} will be a list of
+  formula objects, present for all variables to be imputed,
+  rather than the character vector that it is on input. The
+  list also includes \code{nmis} (number missing in each
+  column of data), \code{nvar} (number of columns of data),
+  \code{varnames} (variable names for the data).}
+  \item{\code{loggedEvents}:}{As above.} }
 }
 \author{
   Stef van Buuren, Karin Groothuis-Oudshoorn, 2000

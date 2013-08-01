@@ -22,7 +22,7 @@
 #'@param y A \code{mids} object or a \code{data.frame}, \code{matrix},
 #'\code{factor} or \code{vector}.
 #'@param \dots Additional \code{data.frame}, \code{matrix}, \code{vector} or \code{factor}.
-#'These can be given as named arguments and are combined with \code{y} using \code{\link{cbind}).
+#'These can be given as named arguments and are combined with \code{y} using \code{\link{cbind}}.
 #'@return An S3 object of class \code{mids}
 #'Component \code{call} is a vector, with first argument the \code{mice()} statement
 #'that created \code{x} and second argument the call to \code{cbind.mids()}.
@@ -55,7 +55,7 @@
 #'If \code{y$chainVar} does not exist this element equals \code{x$chainVar}.
 #' Values for \code{m}, \code{seed}, \code{lastSeedValue}, \code{iteration} and \code{loggedEvents}
 #' are copied from \code{x}.
-#' \code(prepared} has \code{$data} suitably merged and the rest copied from \code{x}.
+#' \code{prepared} has \code{$data} suitably merged and the rest copied from \code{x}.
 #'@author Karin Groothuis-Oudshoorn, Stef van Buuren, 2009
 #'@seealso \code{\link{rbind.mids}}, \code{\link{ibind}}, \code{\link[=mids-class]{mids}}
 #'@keywords manip
@@ -130,16 +130,16 @@ cbind.mids <- function(x, y, ...) {
         imp <- vector("list", ncol(y))
         for (j in 1:ncol(y)) {
             imp[[j]] <- as.data.frame(matrix(NA, nrow = sum(!r[, j]), ncol = x$m))
-            dimnames(imp[[j]]) <- list(row.names(y)[r[, j] == FALSE], 1:m)
+            dimnames(imp[[j]]) <- list(row.names(y)[r[, j] == FALSE], 1:x$m)
         }
         imp <- c(x$imp, imp)
         names(imp) <- varnames
 
         # The imputation method for (columns in) y will be set to  an appropriate missing.
         ncy <- ncol(y)
-        method <- c(x$method, rep(NA_character, ncy))
+        method <- c(x$method, rep(NA_character_, ncy))
         names(method) <- c(names(x$method), colnames(y))
-        form <- c(x$form, rep(NA_character, ncy))
+        form <- c(x$form, rep(NA_character_, ncy))
         names(form) <- c(names(x$form), colnames(y))
         control <- lapply(x$control, function(cntl) c(cntl, vector("list", ncy)))
         names(control) <- c(names(x$control), colnames(y))
@@ -153,7 +153,7 @@ cbind.mids <- function(x, y, ...) {
         visitSequence <- x$visitSequence
 
         # The post vector for (columns in) y will be set to ''.
-        post <- c(x$post, rep(NA_character, ncy))
+        post <- c(x$post, rep(NA_character_, ncy))
         names(post) <- c(names(x$post), colnames(y))
         extra <- c(x$extra, vector("list", ncy))
         names(extra) <- c(names(x$extra), colnames(y))

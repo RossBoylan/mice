@@ -7,6 +7,7 @@
     predictorMatrix = (1 - diag(1, ncol(data))),
     visitSequence = (1:ncol(data))[apply(is.na(data), 2, any)],
     form = vector("character", length = ncol(data)),
+    control = vector("list", length = ncol(data)),
     post = vector("character", length = ncol(data)),
     defaultMethod = c("pmm", "logreg", "polyreg", "polr"),
     maxit = 5, diagnostics = TRUE, printFlag = TRUE,
@@ -60,13 +61,6 @@
   monotone). The keyword should be supplied as a string and
   may be abbreviated.}
 
-  \item{post}{A vector of strings with length
-  \code{ncol(data)}, specifying expressions. Each string is
-  parsed and executed within the \code{sampler()} function
-  to postprocess imputed values.  The default is to do
-  nothing, indicated by a vector of empty strings
-  \code{''}.}
-
   \item{form}{A vector of strings with length
   \code{ncol(data)}, specifying formulae. Each string is
   parsed and executed within the \code{sampler()} function
@@ -75,7 +69,13 @@
   \code{''}.  The main value lies in the easy specification
   of interaction terms.  The user must ensure that the set
   of variables in the formula match those in
-  \code{predictors}.}
+  \code{predictors}. Note the string should not have ~ at
+  the front or terms to suppress intercepts; both will be
+  added automatically.}
+
+  \item{control}{A list with length \code{ncol(data)} with
+  elements \code{NULL} or a list of control parameters for
+  imputation of the corresponnding variable.}
 
   \item{defaultMethod}{A vector of three strings containing
   the default imputation methods for numerical columns,
@@ -92,6 +92,13 @@
 
   \item{maxit}{A scalar giving the number of iterations.
   The default is 5.}
+
+  \item{post}{A vector of strings with length
+  \code{ncol(data)}, specifying expressions. Each string is
+  parsed and executed within the \code{sampler()} function
+  to postprocess imputed values.  The default is to do
+  nothing, indicated by a vector of empty strings
+  \code{''}.}
 
   \item{diagnostics}{A Boolean flag. If \code{TRUE},
   diagnostic information will be appended to the value of
@@ -157,12 +164,9 @@
   from within the algorithm.
 
   The data may contain categorical variables that are used
-  in a regressions on other variables. The algorithm
-  creates dummy variables for the categories of these
-  variables, and imputes these from the corresponding
-  categorical variable. The extended model containing the
-  dummy variables is called the padded model. Its structure
-  is stored in the list component \code{pad}.
+  in a regressions on other variables.  The program
+  computes a model matrix with appropriate dummies on the
+  fly and passes it to the low-level imputation methods.
 
   Built-in elementary imputation methods are:
 
